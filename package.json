@@ -1,0 +1,20 @@
+{
+  "name": "promptguard",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "setup": "pnpm install && pnpm db:migrate",
+    "dev": "pnpm --filter @promptguard/core build && pnpm --filter @promptguard/web dev",
+    "build": "pnpm --filter @promptguard/core build && pnpm -r build",
+    "start": "pnpm --filter @promptguard/web start",
+    "db:migrate": "pnpm --filter @promptguard/core db:migrate",
+    "db:generate": "pnpm --filter @promptguard/core db:generate",
+    "seed": "pnpm --filter @promptguard/core seed",
+    "cli": "pnpm --filter @promptguard/cli start",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9.15.4"
+}

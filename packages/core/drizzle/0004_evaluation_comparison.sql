@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS `evaluation_comparisons` (
+  `id` text PRIMARY KEY NOT NULL,
+  `prompt_id` text NOT NULL,
+  `baseline_version_id` text NOT NULL,
+  `candidate_version_id` text NOT NULL,
+  `dataset_id` text NOT NULL,
+  `baseline_run_id` text NOT NULL,
+  `candidate_run_id` text NOT NULL,
+  `avg_score_delta` real NOT NULL,
+  `pass_rate_delta` real NOT NULL,
+  `latency_delta_ms` real NOT NULL,
+  `improved_count` integer NOT NULL,
+  `regressed_count` integer NOT NULL,
+  `unchanged_count` integer NOT NULL,
+  `created_at` text DEFAULT (datetime('now')) NOT NULL,
+  FOREIGN KEY (`prompt_id`) REFERENCES `prompts`(`id`) ON UPDATE no action ON DELETE cascade,
+  FOREIGN KEY (`baseline_version_id`) REFERENCES `prompt_versions`(`id`) ON UPDATE no action ON DELETE no action,
+  FOREIGN KEY (`candidate_version_id`) REFERENCES `prompt_versions`(`id`) ON UPDATE no action ON DELETE no action,
+  FOREIGN KEY (`dataset_id`) REFERENCES `datasets`(`id`) ON UPDATE no action ON DELETE no action,
+  FOREIGN KEY (`baseline_run_id`) REFERENCES `evaluation_runs`(`id`) ON UPDATE no action ON DELETE no action,
+  FOREIGN KEY (`candidate_run_id`) REFERENCES `evaluation_runs`(`id`) ON UPDATE no action ON DELETE no action
+);

@@ -1,0 +1,290 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Bricolage+Grotesque:wght@300;400;500;600;700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-bricolage: "Bricolage Grotesque", sans-serif;
+  --font-serif: "Playfair Display", Georgia, serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+}
+
+.font-serif {
+  font-family: "Playfair Display", serif;
+}
+
+.font-bricolage {
+  font-family: "Bricolage Grotesque", sans-serif !important;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.grid-lines {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: 80rem;
+  margin: 0 auto;
+  pointer-events: none;
+  z-index: 5;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  opacity: 0.15;
+}
+@media (min-width: 768px) {
+  .grid-lines {
+    padding: 0 3rem;
+  }
+}
+.grid-line {
+  width: 1px;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+@keyframes cinematicEntrance {
+  0% {
+    transform: scale(1.4);
+    filter: blur(20px) grayscale(100%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    filter: blur(0px) grayscale(0%);
+    opacity: 1;
+  }
+}
+.animate-cinematic {
+  animation: cinematicEntrance 3.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes slideUpFade {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-slide-up {
+  animation: slideUpFade 1s ease-out forwards;
+}
+
+@keyframes ticker {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+.animate-ticker {
+  animation: ticker 20s linear infinite;
+}
+
+@keyframes animationIn {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+    filter: blur(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0px);
+  }
+}
+
+@keyframes shimmerMove {
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+  }
+  100% {
+    transform: translateX(200%) skewX(-20deg);
+  }
+}
+.animate-shimmer-effect {
+  animation: shimmerMove 3s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.08);
+  }
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(2%, -3%) scale(1.04);
+  }
+  66% {
+    transform: translate(-2%, 2%) scale(0.98);
+  }
+}
+.animate-breathe {
+  animation: breathe 9s ease-in-out infinite;
+}
+.animate-float {
+  animation: float 14s ease-in-out infinite;
+}
+
+.bg-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+.text-glow {
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes spinReverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+.animate-on-scroll[data-anim="slide-left"].animate {
+  animation: slideInLeft 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+.animate-on-scroll[data-anim="slide-right"].animate {
+  animation: slideInRight 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+.animate-spin-slow-reverse {
+  animation: spinReverse 12s linear infinite;
+}
+
+.animate-on-scroll {
+  opacity: 1;
+  animation: animationIn 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation-play-state: running !important;
+}
+.animate-on-scroll.animate {
+  animation-play-state: running !important;
+}
+
+.delay-100 {
+  animation-delay: 100ms;
+}
+.delay-200 {
+  animation-delay: 200ms;
+}
+.delay-300 {
+  animation-delay: 300ms;
+}
+.delay-400 {
+  animation-delay: 400ms;
+}
+.delay-500 {
+  animation-delay: 500ms;
+}
+
+@keyframes fanSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(40px) rotate(2deg) scale(0.96);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotate(0) scale(1);
+    filter: blur(0);
+  }
+}
+@keyframes barEqualizer {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.3);
+  }
+}
+.bar-anim {
+  transform-origin: bottom;
+  animation-name: barEqualizer;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  animation-iteration-count: infinite;
+}
+
+.diff-add {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+}
+.diff-remove {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}

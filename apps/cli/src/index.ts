@@ -1,0 +1,582 @@
+#!/usr/bin/env node
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import chalk from "chalk";
+import { Command } from "commander";
+import dotenv from "dotenv";
+import {
+  createUser,
+  approveReview,
+  compareEvaluationVersions,
+  createDataset,
+  DatasetImportError,
+  type DatasetImportFormat,
+  createPrompt,
+  exportDatasetJson,
+  exportAuditLogs,
+  exportReport,
+  getSystemSettings,
+  getUserBySessionToken,
+  getPrompt,
+  getVersionDiff,
+  listAuditLogs,
+  importDatasetText,
+  listAlertRecords,
+  listEvaluationComparisons,
+  listUsers,
+  login,
+  logout,
+  listDatasets,
+  listEvaluationRuns,
+  listGrayReleases,
+  listReleaseHistory,
+  listPrompts,
+  listReviews,
+  listRoutePolicies,
+  promoteRelease,
+  requirePermission,
+  type ReportFormat,
+  type ReportType,
+  type Permission,
+  type RoleName,
+  rejectReview,
+  retryEvaluationRun,
+  rollbackPrompt,
+  rollbackRelease,
+  runEvaluation,
+  runMigrations,
+  runSecurityScan,
+  savePromptVersion,
+  expandGrayRelease,
+  startGrayRelease,
+  submitReview,
+  updateSystemSettings,
+} from "@promptguard/core";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+const sessionFile = path.resolve(__dirname, "../../../.promptguard-session.json");
+
+const program = new Command();
+
+program.name("promptguard").description("PromptGuard CLI").version("0.1.0");
+
+function readCliToken() {
+  if (!fs.existsSync(sessionFile)) return undefined;
+  try {
+    const data = JSON.parse(fs.readFileSync(sessionFile, "utf-8")) as { token?: string };
+    return data.token;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeCliToken(token: string) {
+  fs.writeFileSync(sessionFile, JSON.stringify({ token }, null, 2));
+}
+
+function clearCliToken() {
+  if (fs.existsSync(sessionFile)) fs.unlinkSync(sessionFile);
+}
+
+function detectDatasetImportFormat(file: string, format?: string): DatasetImportFormat {
+  const normalized = format?.toLowerCase();
+  if (normalized === "json" || normalized === "csv") return normalized;
+  return path.extname(file).toLowerCase() === ".csv" ? "csv" : "json";
+}
+
+async function requireCliPermission(permission: Permission) {
+  try {
+    return await requirePermission(readCliToken(), permission);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Permission denied";
+    console.error(chalk.red(`${message}. Run: promptguard auth login`));
+    process.exit(1);
+  }
+}
+
+program
+  .command("init")
+  .description("Initialize database")
+  .action(() => {
+    runMigrations();
+    console.log(chalk.green("Database initialized."));
+  });
+
+const authCmd = program.command("auth").description("Authentication");
+
+authCmd
+  .command("login")
+  .requiredOption("-u, --username <username>")
+  .requiredOption("-p, --password <password>")
+  .action(async (opts) => {
+    const result = await login({ username: opts.username, password: opts.password });
+    writeCliToken(result.token);
+    console.log(chalk.green(`Logged in as ${result.user?.username} (${result.user?.roles.join(", ")})`));
+  });
+
+authCmd.command("whoami").action(async () => {
+  const user = await getUserBySessionToken(readCliToken());
+  if (!user) {
+    console.log(chalk.yellow("Not logged in."));
+    return;
+  }
+  console.log(`${chalk.cyan(user.username)}  roles: ${user.roles.join(", ")}`);
+});
+
+authCmd.command("logout").action(async () => {
+  await logout(readCliToken());
+  clearCliToken();
+  console.log(chalk.green("Logged out."));
+});
+
+const userCmd = program.command("user").description("User and role management");
+
+userCmd.command("list").action(async () => {
+  await requireCliPermission("user:manage");
+  const users = await listUsers();
+  for (const user of users) {
+    console.log(`${chalk.cyan(user.id)}  ${user.username}  roles=${user.roles.join(", ")}`);
+  }
+});
+
+userCmd
+  .command("create")
+  .requiredOption("-u, --username <username>")
+  .requiredOption("-p, --password <password>")
+  .option("-n, --name <displayName>")
+  .option("-r, --roles <roles>", "Comma-separated roles", "viewer")
+  .action(async (opts) => {
+    const actor = await requireCliPermission("user:manage");
+    const roles = opts.roles.split(",").map((role: string) => role.trim()) as RoleName[];
+    const user = await createUser({
+      username: opts.username,
+      password: opts.password,
+      displayName: opts.name,
+      roles,
+      actor: actor.username,
+    });
+    console.log(chalk.green(`Created user: ${user.username} (${user.roles.join(", ")})`));
+  });
+
+const configCmd = program.command("config").description("System configuration");
+
+configCmd.command("get").action(async () => {
+  const settings = await getSystemSettings();
+  console.log(JSON.stringify(settings, null, 2));
+});
+
+configCmd
+  .command("set")
+  .option("--provider <provider>", "mock, openai, or anthropic")
+  .option("--openai-model <model>")
+  .option("--anthropic-model <model>")
+  .action(async (opts) => {
+    const actor = await requireCliPermission("settings:write");
+    const settings = await updateSystemSettings({
+      provider: opts.provider,
+      openaiModel: opts.openaiModel,
+      anthropicModel: opts.anthropicModel,
+      actor: actor.username,
+    });
+    console.log(chalk.green(`Updated config: provider=${settings.provider}`));
+  });
+
+const auditCmd = program.command("audit").description("Audit logs");
+
+auditCmd
+  .command("list")
+  .option("--limit <n>", "Number of logs", (value) => parseInt(value, 10), 50)
+  .action(async (opts) => {
+    await requireCliPermission("audit:read");
+    const logs = await listAuditLogs(opts.limit);
+    for (const log of logs) {
+      console.log(`${chalk.cyan(log.id)}  ${log.action}  ${log.entityType}:${log.entityId}  actor=${log.actor ?? "-"}  ${log.createdAt}`);
+    }
+  });
+
+auditCmd
+  .command("export")
+  .option("--format <format>", "json or csv", "json")
+  .option("--limit <n>", "Number of logs", (value) => parseInt(value, 10), 500)
+  .option("-f, --file <file>")
+  .action(async (opts) => {
+    await requireCliPermission("audit:read");
+    const format = opts.format === "csv" ? "csv" : "json";
+    const output = await exportAuditLogs(format, opts.limit);
+    if (opts.file) {
+      fs.writeFileSync(opts.file, output);
+      console.log(chalk.green(`Audit exported: ${opts.file}`));
+    } else {
+      console.log(output);
+    }
+  });
+
+const promptCmd = program.command("prompt").description("Prompt management");
+
+promptCmd
+  .command("list")
+  .description("List all prompts")
+  .action(async () => {
+    const prompts = await listPrompts();
+    if (!prompts.length) {
+      console.log(chalk.yellow("No prompts found."));
+      return;
+    }
+    for (const p of prompts) {
+      console.log(`${chalk.cyan(p.id)}  ${p.name}  [${p.status}]  v${p.versionCount}  tags: ${p.tags.join(", ")}`);
+    }
+  });
+
+promptCmd
+  .command("create")
+  .requiredOption("-n, --name <name>")
+  .requiredOption("-c, --content <content>")
+  .option("-d, --description <description>")
+  .option("-t, --tags <tags>")
+  .action(async (opts) => {
+    await requireCliPermission("prompt:write");
+    const p = await createPrompt({
+      name: opts.name,
+      content: opts.content,
+      description: opts.description,
+      tagNames: opts.tags?.split(",").map((t: string) => t.trim()),
+    });
+    console.log(chalk.green(`Created prompt: ${p?.id}`));
+  });
+
+promptCmd
+  .command("show <id>")
+  .action(async (id) => {
+    const p = await getPrompt(id);
+    if (!p) {
+      console.log(chalk.red("Not found"));
+      return;
+    }
+    console.log(JSON.stringify(p, null, 2));
+  });
+
+promptCmd
+  .command("save <id>")
+  .requiredOption("-c, --content <content>")
+  .option("--changelog <changelog>")
+  .action(async (id, opts) => {
+    await requireCliPermission("prompt:write");
+    const p = await savePromptVersion(id, { content: opts.content, changelog: opts.changelog });
+    console.log(chalk.green(`Saved new version for ${p?.name}`));
+  });
+
+promptCmd
+  .command("diff <id>")
+  .requiredOption("--from <n>", "From version number", parseInt)
+  .requiredOption("--to <n>", "To version number", parseInt)
+  .action(async (id, opts) => {
+    const diff = await getVersionDiff(id, opts.from, opts.to);
+    console.log(diff.patch);
+  });
+
+promptCmd
+  .command("rollback <id>")
+  .requiredOption("-v, --version <n>", "Version number", parseInt)
+  .action(async (id, opts) => {
+    await requireCliPermission("release:write");
+    await rollbackPrompt(id, opts.version);
+    console.log(chalk.green(`Rolled back to v${opts.version}`));
+  });
+
+const datasetCmd = program.command("dataset").description("Dataset management");
+
+datasetCmd.command("list").action(async () => {
+  const datasets = await listDatasets();
+  for (const d of datasets) {
+    console.log(`${chalk.cyan(d.id)}  ${d.name}  (${d.caseCount} cases)`);
+  }
+});
+
+datasetCmd
+  .command("import")
+  .requiredOption("-f, --file <file>")
+  .option("--format <format>", "json or csv")
+  .option("-n, --name <name>")
+  .option("-d, --description <description>")
+  .action(async (opts) => {
+    await requireCliPermission("dataset:write");
+    const content = fs.readFileSync(opts.file, "utf-8");
+    const detectedFormat = detectDatasetImportFormat(opts.file, opts.format);
+    try {
+      const ds = await importDatasetText({
+        name: opts.name ?? path.basename(opts.file, path.extname(opts.file)),
+        description: opts.description,
+        format: detectedFormat,
+        content,
+      });
+      console.log(chalk.green(`Imported dataset: ${ds?.id}`));
+    } catch (error) {
+      if (error instanceof DatasetImportError) {
+        console.error(chalk.red("Dataset import failed:"));
+        for (const item of error.errors) {
+          console.error(`  row=${item.row || "-"} field=${item.field} ${item.message}`);
+        }
+        process.exit(1);
+      }
+      throw error;
+    }
+  });
+
+datasetCmd
+  .command("export <id>")
+  .option("-f, --file <file>")
+  .action(async (id, opts) => {
+    const data = await exportDatasetJson(id);
+    const output = JSON.stringify(data, null, 2);
+    if (opts.file) {
+      const fs = await import("node:fs");
+      fs.writeFileSync(opts.file, output);
+      console.log(chalk.green(`Exported to ${opts.file}`));
+    } else {
+      console.log(output);
+    }
+  });
+
+const evalCmd = program.command("eval").description("Evaluation");
+
+evalCmd
+  .command("run")
+  .requiredOption("--prompt <id>")
+  .requiredOption("--version <n>", "Version number", (v) => parseInt(v, 10))
+  .requiredOption("--dataset <id>")
+  .option("--models <models>")
+  .action(async (opts) => {
+    await requireCliPermission("evaluation:run");
+    const run = await runEvaluation({
+      promptId: opts.prompt,
+      versionNumber: opts.version,
+      datasetId: opts.dataset,
+      models: opts.models?.split(",").map((m: string) => m.trim()),
+    });
+    console.log(chalk.green(`Evaluation complete: ${run?.id} avg=${run?.avgScore?.toFixed(2)}`));
+  });
+
+evalCmd.command("list").action(async () => {
+  const [runs, comparisons] = await Promise.all([listEvaluationRuns(), listEvaluationComparisons()]);
+  if (runs.length) console.log(chalk.bold("Evaluation runs"));
+  for (const r of runs) {
+    console.log(`${chalk.cyan(r.id)}  ${r.status}  avg=${r.avgScore?.toFixed(2) ?? "-"}  tokens=${r.totalTokens ?? 0}  cost=$${(r.totalCost ?? 0).toFixed(4)}  error=${r.errorMessage ?? "-"}  ${r.createdAt}`);
+  }
+  if (comparisons.length) {
+    console.log(chalk.bold("Version comparisons"));
+    for (const c of comparisons) {
+      console.log(`${chalk.cyan(c.id)}  scoreDelta=${c.avgScoreDelta.toFixed(2)}  passDelta=${(c.passRateDelta * 100).toFixed(1)}%  latencyDelta=${c.latencyDeltaMs.toFixed(0)}ms`);
+    }
+  }
+});
+
+evalCmd
+  .command("retry <id>")
+  .description("Retry a failed or completed evaluation run with the same version, dataset, and models")
+  .action(async (id) => {
+    await requireCliPermission("evaluation:run");
+    const run = await retryEvaluationRun(id);
+    console.log(chalk.green(`Retry complete: ${run?.id} status=${run?.status} avg=${run?.avgScore?.toFixed(2)}`));
+  });
+
+evalCmd
+  .command("compare")
+  .requiredOption("--prompt <id>")
+  .requiredOption("--baseline-version <n>", "Baseline version number", (v) => parseInt(v, 10))
+  .requiredOption("--candidate-version <n>", "Candidate version number", (v) => parseInt(v, 10))
+  .requiredOption("--dataset <id>")
+  .option("--models <models>")
+  .action(async (opts) => {
+    await requireCliPermission("evaluation:run");
+    const comparison = await compareEvaluationVersions({
+      promptId: opts.prompt,
+      baselineVersionNumber: opts.baselineVersion,
+      candidateVersionNumber: opts.candidateVersion,
+      datasetId: opts.dataset,
+      models: opts.models?.split(",").map((m: string) => m.trim()),
+    });
+    console.log(chalk.green(`Comparison complete: ${comparison?.id}`));
+    console.log(`  score delta: ${comparison?.avgScoreDelta.toFixed(2)}`);
+    console.log(`  pass rate delta: ${((comparison?.passRateDelta ?? 0) * 100).toFixed(1)}%`);
+    console.log(`  latency delta: ${comparison?.latencyDeltaMs.toFixed(0)}ms`);
+    console.log(`  improved/regressed/unchanged: ${comparison?.improvedCount}/${comparison?.regressedCount}/${comparison?.unchangedCount}`);
+  });
+
+const securityCmd = program.command("security").description("Security scans");
+
+securityCmd
+  .command("scan")
+  .requiredOption("--prompt <id>")
+  .requiredOption("--version <n>", "Version number", (v) => parseInt(v, 10))
+  .action(async (opts) => {
+    await requireCliPermission("security:run");
+    const scan = await runSecurityScan({ promptId: opts.prompt, versionNumber: opts.version });
+    console.log(chalk.green(`Scan complete: ${scan?.id} risk=${scan?.riskScore?.toFixed(2)} passed=${scan?.passed}`));
+  });
+
+const reviewCmd = program.command("review").description("Review workflow");
+
+reviewCmd
+  .command("submit")
+  .requiredOption("--prompt <id>")
+  .requiredOption("--version <n>", "Version number", (v) => parseInt(v, 10))
+  .option("--comment <comment>")
+  .action(async (opts) => {
+    const user = await requireCliPermission("review:submit");
+    const id = await submitReview({
+      promptId: opts.prompt,
+      versionNumber: opts.version,
+      submittedBy: user.username,
+      comment: opts.comment,
+    });
+    console.log(chalk.green(`Review submitted: ${id}`));
+  });
+
+reviewCmd
+  .command("approve <id>")
+  .option("--comment <comment>")
+  .action(async (id, opts) => {
+    const user = await requireCliPermission("review:decide");
+    await approveReview(id, user.username, opts.comment);
+    console.log(chalk.green("Approved."));
+  });
+
+reviewCmd
+  .command("reject <id>")
+  .option("--comment <comment>")
+  .action(async (id, opts) => {
+    const user = await requireCliPermission("review:decide");
+    await rejectReview(id, user.username, opts.comment);
+    console.log(chalk.yellow("Rejected."));
+  });
+
+reviewCmd.command("list").action(async () => {
+  const reviews = await listReviews();
+  for (const r of reviews) {
+    console.log(`${chalk.cyan(r.id)}  ${r.status}  prompt=${r.promptId}  ${r.createdAt}`);
+  }
+});
+
+const releaseCmd = program.command("release").description("Gray release");
+
+releaseCmd
+  .command("gray")
+  .requiredOption("--prompt <id>")
+  .requiredOption("--prompt-version <n>", "Prompt version number", (v) => parseInt(v, 10))
+  .requiredOption("--percent <n>", "Traffic percent", (v) => parseInt(v, 10))
+  .option("--env <environment>", "Route policy environment", "production")
+  .requiredOption("--note <note>", "Release reason")
+  .action(async (opts) => {
+    await requireCliPermission("release:write");
+    const r = await startGrayRelease({
+      promptId: opts.prompt,
+      versionNumber: opts.promptVersion,
+      trafficPercent: opts.percent,
+      environment: opts.env,
+      note: opts.note,
+    });
+    console.log(chalk.green(`Gray release started: ${r?.id}`));
+  });
+
+releaseCmd.command("status").action(async () => {
+  const [releases, policies, alerts] = await Promise.all([listGrayReleases(), listRoutePolicies(), listAlertRecords("open")]);
+  if (policies.length) {
+    console.log(chalk.bold("Route policies"));
+    for (const p of policies) {
+      console.log(`${chalk.cyan(p.id)}  ${p.environment}  ${p.status}  ${p.trafficPercent}%  stable=${p.stableVersionId ?? "-"}  gray=${p.grayVersionId ?? "-"}`);
+    }
+  }
+  if (releases.length) console.log(chalk.bold("Gray releases"));
+  for (const r of releases) {
+    console.log(`${chalk.cyan(r.id)}  ${r.status}  ${r.trafficPercent}%  score=${r.observationScore?.toFixed(2)}`);
+  }
+  if (alerts.length) {
+    console.log(chalk.bold("Open alerts"));
+    for (const alert of alerts) {
+      console.log(`${chalk.red(alert.severity)}  ${alert.metric}=${alert.value} threshold=${alert.threshold}  release=${alert.releaseId ?? "-"}`);
+    }
+  }
+});
+
+releaseCmd
+  .command("expand")
+  .requiredOption("--prompt <id>")
+  .requiredOption("--percent <n>", "Traffic percent", (v) => parseInt(v, 10))
+  .option("--env <environment>", "Route policy environment", "production")
+  .requiredOption("--note <note>", "Expansion reason")
+  .action(async (opts) => {
+    await requireCliPermission("release:write");
+    const release = await expandGrayRelease({
+      promptId: opts.prompt,
+      trafficPercent: opts.percent,
+      environment: opts.env,
+      note: opts.note,
+    });
+    console.log(chalk.green(`Gray release expanded: ${release?.id} ${release?.trafficPercent}%`));
+  });
+
+releaseCmd
+  .command("promote")
+  .requiredOption("--prompt <id>")
+  .option("--env <environment>", "Route policy environment", "production")
+  .requiredOption("--note <note>", "Promotion reason")
+  .action(async (opts) => {
+    await requireCliPermission("release:write");
+    const release = await promoteRelease(opts.prompt, opts.env, opts.note);
+    console.log(chalk.green(`Release promoted: ${release?.id}`));
+  });
+
+releaseCmd
+  .command("rollback")
+  .requiredOption("--prompt <id>")
+  .requiredOption("--prompt-version <n>", "Prompt version number", (v) => parseInt(v, 10))
+  .option("--env <environment>", "Route policy environment", "production")
+  .requiredOption("--reason <reason>", "Rollback reason")
+  .action(async (opts) => {
+    await requireCliPermission("release:write");
+    await rollbackRelease(opts.prompt, opts.promptVersion, opts.env, opts.reason);
+    console.log(chalk.green("Rollback complete."));
+  });
+
+releaseCmd
+  .command("history")
+  .option("--prompt <id>")
+  .action(async (opts) => {
+    const history = await listReleaseHistory(opts.prompt);
+    for (const event of history) {
+      console.log(`${chalk.cyan(event.id)}  ${event.eventType}  prompt=${event.promptId}  ${event.detail ?? "-"}  ${event.createdAt}`);
+    }
+  });
+
+const reportCmd = program.command("report").description("Reports");
+
+reportCmd
+  .command("generate")
+  .option("--run <id>", "Evaluation run id")
+  .option("--type <type>", "evaluation, diff, security, release, or audit", "evaluation")
+  .option("--source <id>", "Source id for security/release/audit")
+  .option("--prompt <id>", "Prompt id for diff reports")
+  .option("--from <n>", "Diff from version", (v) => parseInt(v, 10))
+  .option("--to <n>", "Diff to version", (v) => parseInt(v, 10))
+  .option("--format <format>", "json or html", "json")
+  .action(async (opts) => {
+    const actor = await requireCliPermission("audit:read");
+    const type = opts.type as ReportType;
+    const sourceId = opts.run ?? opts.source ?? (type === "audit" ? "audit" : undefined);
+    if (!sourceId) {
+      console.error(chalk.red("Report source is required. Use --run or --source."));
+      process.exit(1);
+    }
+    const { filePath } = await exportReport(sourceId, opts.format as ReportFormat, {
+      type,
+      promptId: opts.prompt,
+      fromVersion: opts.from,
+      toVersion: opts.to,
+      actor: actor.username,
+    });
+    console.log(chalk.green(`Report saved: ${filePath}`));
+  });
+
+program.parse();
