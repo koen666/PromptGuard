@@ -16,7 +16,7 @@ export function TemplateSectionHeader({
   return (
     <div className="mb-5 flex flex-col items-start justify-between gap-4 border-b border-white/10 pb-5 md:flex-row md:items-end">
       <div className="max-w-3xl">
-        <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">{tag}</div>
+        <div className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#d6c985]">{tag}</div>
         <h2 className="text-2xl font-semibold tracking-tight text-white md:text-3xl">
           {title}
           {titleMuted && <span className="font-normal text-white/40"> {titleMuted}</span>}
@@ -40,7 +40,7 @@ export function TemplateListSection({
 }) {
   return (
     <section className="relative px-4 pb-7 sm:px-6 lg:px-8">
-      <div className="relative z-10 mx-auto w-full max-w-7xl">
+      <div className="relative z-10 mx-auto w-full max-w-[1480px]">
         <div className="mb-3 flex items-end justify-between gap-4">
           <div>
             <h3 className="text-lg font-semibold text-white">{title}</h3>
@@ -48,7 +48,7 @@ export function TemplateListSection({
           </div>
           {vol && <span className="text-xs text-white/25">{vol}</span>}
         </div>
-        <div className="overflow-hidden rounded-lg border border-white/10 bg-neutral-900/72 shadow-[0_20px_80px_rgba(0,0,0,0.18)]">{children}</div>
+        <div className="overflow-hidden rounded-lg border border-white/10 bg-[#181b1c]/82 shadow-[0_18px_54px_rgba(0,0,0,0.22)]">{children}</div>
       </div>
     </section>
   );
@@ -96,7 +96,7 @@ export function TemplateListItem({
 
       <div className="col-span-1 flex items-center justify-between gap-3 lg:col-span-2 lg:justify-end">
         {tier && <StatusPill value={tier} />}
-        <div className="text-sm text-emerald-300">
+          <div className="text-sm text-[#d6c985]">
           查看
         </div>
       </div>
@@ -114,7 +114,7 @@ export function TemplateStatsRow({
 }) {
   return (
     <section className="border-t border-white/5 bg-neutral-950 px-6 pb-20 pt-20">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-[1480px]">
         <div className="grid grid-cols-2 gap-x-8 gap-y-8 border-t border-white/5 pt-12 md:grid-cols-4">
           {items.map((item) => (
             <div key={item.label} className="text-center">
@@ -130,8 +130,8 @@ export function TemplateStatsRow({
 
 export function TemplatePageWrap({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative z-10 w-full px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">{children}</div>
+    <div className="relative z-10 w-full px-2 py-4 sm:px-4 lg:px-6">
+      <div className="mx-auto max-w-[1480px]">{children}</div>
     </div>
   );
 }
@@ -161,7 +161,7 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-lg border border-white/10 bg-neutral-900/72 p-4 shadow-[0_20px_80px_rgba(0,0,0,0.18)] sm:p-5", className)}>
+    <section className={cn("rounded-lg border border-white/10 bg-[#181b1c]/82 p-4 shadow-[0_18px_54px_rgba(0,0,0,0.22)] sm:p-5", className)}>
       {children}
     </section>
   );

@@ -16,10 +16,14 @@ import {
   exportDatasetJson,
   exportAuditLogs,
   exportReport,
+  exportPromptFile,
   getSystemSettings,
   getUserBySessionToken,
   getPrompt,
   getVersionDiff,
+  GuardedPrompt,
+  importPromptFile,
+  initPromptGuardProject,
   listAuditLogs,
   importDatasetText,
   listAlertRecords,
@@ -48,6 +52,7 @@ import {
   runMigrations,
   runSecurityScan,
   savePromptVersion,
+  savePromptVersionFromFile,
   expandGrayRelease,
   startGrayRelease,
   submitReview,
@@ -86,6 +91,24 @@ function detectDatasetImportFormat(file: string, format?: string): DatasetImport
   return path.extname(file).toLowerCase() === ".csv" ? "csv" : "json";
 }
 
+function parseTags(value?: string) {
+  return value
+    ?.split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
+function readPromptContent(opts: { content?: string; file?: string }) {
+  if (opts.content && opts.file) {
+    console.error(chalk.red("Use either --content or --file, not both."));
+    process.exit(1);
+  }
+  if (opts.file) return fs.readFileSync(path.resolve(opts.file), "utf-8");
+  if (opts.content) return opts.content;
+  console.error(chalk.red("Prompt content is required. Use --content or --file."));
+  process.exit(1);
+}
+
 async function requireCliPermission(permission: Permission) {
   try {
     return await requirePermission(readCliToken(), permission);
@@ -102,6 +125,25 @@ program
   .action(() => {
     runMigrations();
     console.log(chalk.green("Database initialized."));
+  });
+
+const projectCmd = program.command("project").description("PromptGuard project workspace");
+
+projectCmd
+  .command("init")
+  .description("Create .promptguard project folders and config")
+  .option("--root <dir>", "Project root", process.cwd())
+  .option("--sample", "Create a sample prompt file")
+  .option("--force", "Overwrite existing PromptGuard config")
+  .action((opts) => {
+    const project = initPromptGuardProject({
+      root: opts.root,
+      withSample: Boolean(opts.sample),
+      force: Boolean(opts.force),
+    });
+    console.log(chalk.green(`PromptGuard project initialized: ${project.guardDir}`));
+    console.log(`  prompts: ${path.relative(process.cwd(), project.promptsDir) || project.promptsDir}`);
+    console.log(`  datasets: ${path.relative(process.cwd(), project.datasetsDir) || project.datasetsDir}`);
   });
 
 const authCmd = program.command("auth").description("Authentication");
@@ -232,18 +274,39 @@ promptCmd
 promptCmd
   .command("create")
   .requiredOption("-n, --name <name>")
-  .requiredOption("-c, --content <content>")
+  .option("-c, --content <content>")
+  .option("-f, --file <file>", "Read prompt content from a file")
   .option("-d, --description <description>")
   .option("-t, --tags <tags>")
   .action(async (opts) => {
     await requireCliPermission("prompt:write");
+    const content = readPromptContent(opts);
     const p = await createPrompt({
       name: opts.name,
-      content: opts.content,
+      content,
       description: opts.description,
-      tagNames: opts.tags?.split(",").map((t: string) => t.trim()),
+      tagNames: parseTags(opts.tags),
     });
     console.log(chalk.green(`Created prompt: ${p?.id}`));
+  });
+
+promptCmd
+  .command("import")
+  .description("Import a prompt from a local Markdown or text file")
+  .requiredOption("-f, --file <file>")
+  .option("-n, --name <name>")
+  .option("-d, --description <description>")
+  .option("-t, --tags <tags>")
+  .option("--changelog <changelog>")
+  .action(async (opts) => {
+    await requireCliPermission("prompt:write");
+    const prompt = await importPromptFile(opts.file, {
+      name: opts.name,
+      description: opts.description,
+      tagNames: parseTags(opts.tags),
+      changelog: opts.changelog,
+    });
+    console.log(chalk.green(`Imported prompt: ${prompt?.id} ${prompt?.name}`));
   });
 
 promptCmd
@@ -259,12 +322,55 @@ promptCmd
 
 promptCmd
   .command("save <id>")
-  .requiredOption("-c, --content <content>")
+  .option("-c, --content <content>")
+  .option("-f, --file <file>", "Read prompt content from a file")
   .option("--changelog <changelog>")
   .action(async (id, opts) => {
     await requireCliPermission("prompt:write");
-    const p = await savePromptVersion(id, { content: opts.content, changelog: opts.changelog });
+    const p = opts.file
+      ? await savePromptVersionFromFile(id, opts.file, opts.changelog)
+      : await savePromptVersion(id, { content: readPromptContent(opts), changelog: opts.changelog });
     console.log(chalk.green(`Saved new version for ${p?.name}`));
+  });
+
+promptCmd
+  .command("export <id>")
+  .description("Export the active prompt version to a Markdown file")
+  .requiredOption("-f, --file <file>")
+  .action(async (id, opts) => {
+    const exportedPath = await exportPromptFile(id, opts.file);
+    console.log(chalk.green(`Exported prompt: ${exportedPath}`));
+  });
+
+promptCmd
+  .command("run <idOrName>")
+  .description("Load a guarded prompt and run it with the configured LLM adapter")
+  .requiredOption("-i, --input <input>")
+  .option("--env <environment>", "Route policy environment", "production")
+  .option("--version <n>", "Version number", (value) => parseInt(value, 10))
+  .option("--route-key <key>", "Stable key for gray routing")
+  .option("--model <model>", "Runtime model name")
+  .option("--allow-unsafe", "Do not block high-risk prompt injection input")
+  .action(async (idOrName, opts) => {
+    const guardedPrompt = await GuardedPrompt.load(idOrName, {
+      environment: opts.env,
+      versionNumber: opts.version,
+      routeKey: opts.routeKey,
+    });
+    const result = await guardedPrompt.run(opts.input, {
+      model: opts.model,
+      blockUnsafeInput: !opts.allowUnsafe,
+    });
+
+    console.log(chalk.bold(`${result.prompt.name} v${result.prompt.version.versionNumber}`));
+    console.log(`route=${result.prompt.route.status}/${result.prompt.route.selected} blocked=${result.blocked}`);
+    if (result.findings.length) {
+      console.log(chalk.yellow("findings:"));
+      for (const finding of result.findings) {
+        console.log(`  ${finding.level}  ${finding.name}: ${finding.description}`);
+      }
+    }
+    console.log(result.blocked ? chalk.red(result.output) : result.output);
   });
 
 promptCmd
@@ -463,6 +569,7 @@ const releaseCmd = program.command("release").description("Gray release");
 
 releaseCmd
   .command("gray")
+  .alias("start")
   .requiredOption("--prompt <id>")
   .requiredOption("--prompt-version <n>", "Prompt version number", (v) => parseInt(v, 10))
   .requiredOption("--percent <n>", "Traffic percent", (v) => parseInt(v, 10))

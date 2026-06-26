@@ -16,13 +16,13 @@ export const TEMPLATE = {
 } as const;
 
 export const NAV_LINKS = [
-  { href: "/", label: "概览" },
-  { href: "/prompts", label: "Prompt" },
-  { href: "/datasets", label: "数据集" },
-  { href: "/evaluations", label: "评测" },
-  { href: "/security", label: "安全" },
-  { href: "/reviews", label: "审核" },
-  { href: "/releases", label: "发布" },
-  { href: "/audit", label: "审计" },
-  { href: "/settings", label: "设置" },
+  { href: "/", label: "总览", icon: "solar:home-2-linear" },
+  { href: "/prompts", label: "资产库", icon: "solar:archive-linear" },
+  { href: "/datasets", label: "数据集", icon: "solar:database-linear" },
+  { href: "/evaluations", label: "评测", icon: "solar:chart-2-linear" },
+  { href: "/security", label: "安全", icon: "solar:shield-check-linear" },
+  { href: "/reviews", label: "审核", icon: "solar:clipboard-check-linear" },
+  { href: "/releases", label: "发布", icon: "solar:rocket-2-linear" },
+  { href: "/audit", label: "审计", icon: "solar:document-add-linear" },
+  { href: "/settings", label: "设置", icon: "solar:settings-linear" },
 ] as const;

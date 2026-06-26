@@ -10,7 +10,7 @@ loadEnv();
 
 export const metadata: Metadata = {
   title: "PromptGuard",
-  description: "Prompt 版本评测平台",
+  description: "Prompt 核心资产保护库",
 };
 
 export const dynamic = "force-dynamic";
@@ -23,7 +23,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <TemplateShell />
         <TemplateNav />
         <TemplateScrollReveal />
-        {children}
+        <div className="relative z-10 min-h-screen px-3 pb-3 pt-[72px] md:pl-[92px]">
+          {children}
+        </div>
       </body>
     </html>
   );

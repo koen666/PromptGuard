@@ -5,6 +5,8 @@ dist
 .turbo
 *.log
 *.tsbuildinfo
+__pycache__/
+*.pyc
 .env
 .env.local
 .promptguard-session.json

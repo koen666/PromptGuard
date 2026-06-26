@@ -1,14 +1,19 @@
 # PromptGuard
 
-面向 LLM 应用的 **Prompt 版本评测与灰度发布** 平台。
+面向 LLM 应用的 **Prompt 核心资产保护库**。
 
-将 Prompt 作为可版本化、可评测、可审核、可灰度、可回滚的软件资产进行管理。提供 **Web 管理界面** 与 **CLI** 双入口，共享同一套业务逻辑与 SQLite 数据库。
+将 Prompt 作为可导入、可版本化、可运行时防护、可评测、可审核、可灰度、可回滚的软件资产进行管理。项目提供三层入口：
+
+- **SDK / Library**：业务代码可直接加载 `GuardedPrompt`，运行时自动包装系统 Prompt、拦截注入输入、检查输出泄露。
+- **CLI**：初始化 `.promptguard` 项目、从文件导入/导出 Prompt、保存版本、运行评测/安全扫描/灰度发布。
+- **Desktop-style Web**：左侧 dock + 桌面窗口式工作台，展示资产库、运行队列和保护状态。
 
 ---
 
 ## 目录
 
 - [功能概览](#功能概览)
+- [SDK 用法](#sdk-用法)
 - [环境要求](#环境要求)
 - [从零复现（推荐流程）](#从零复现推荐流程)
 - [一键安装脚本（Windows）](#一键安装脚本windows)
@@ -28,6 +33,8 @@
 
 | 模块 | 说明 |
 |------|------|
+| 可导入 SDK | TypeScript `GuardedPrompt` 与轻量 Python SDK |
+| 运行时保护 | 输入注入检测、受保护系统 Prompt 包装、输出泄露检查 |
 | Prompt 资产 | 创建、编辑、自动版本号、diff 对比、回滚 |
 | 评测数据集 | 用例管理、JSON 导入 |
 | 自动评测 | 默认 Mock；可选 OpenAI / Anthropic |
@@ -37,7 +44,53 @@
 | 报告导出 | JSON / HTML（写入 `reports/`） |
 | 审计日志 | 关键操作自动记录 |
 
-Web 界面基于 `generated-page.html` 模板（深色科技风），首页串联模板各展示模块并接入真实业务数据。
+Web 首页已改为桌面软件式资产工作台：首屏突出当前核心 Prompt、运行时防护状态、快速动作、资产库和运行队列。
+
+---
+
+## SDK 用法
+
+### TypeScript
+
+```ts
+import { GuardedPrompt } from "@promptguard/core";
+
+const prompt = await GuardedPrompt.load("customer-service", {
+  environment: "production",
+  routeKey: user.id,
+});
+
+const response = await prompt.run(userInput);
+console.log(response.output);
+```
+
+默认会使用项目配置的 LLM adapter。也可以传入自定义 runner：
+
+```ts
+const response = await prompt.run(userInput, {
+  runner: async ({ messages }) => {
+    return callYourModel(messages);
+  },
+});
+```
+
+### Python
+
+```python
+from promptguard import GuardedPrompt
+
+prompt = GuardedPrompt.load("customer-service")
+response = prompt.run(user_input)
+print(response.output)
+```
+
+本地开发安装：
+
+```powershell
+pip install -e packages/python
+```
+
+Python SDK 默认读取同一份 SQLite 数据库。可通过 `DATABASE_URL` 或 `PROMPTGUARD_ROOT` 指向业务项目。
 
 ---
 
@@ -149,7 +202,7 @@ PowerShell 在项目根目录执行：
 
 | 路径 | 页面 |
 |------|------|
-| `/` | 首页 Dashboard（模板 Hero + 统计） |
+| `/` | 桌面式资产工作台 |
 | `/prompts` | Prompt 列表 |
 | `/prompts/[id]` | Prompt 详情 / 编辑 |
 | `/prompts/[id]/diff` | 版本 diff |
@@ -196,18 +249,22 @@ ANTHROPIC_MODEL=claude-3-5-haiku-20241022
 ## 演示流程（给验收 / 答辩用）
 
 1. `pnpm seed`（若库为空）
-2. 打开首页 `/`，查看统计与模板展示区块
+2. 打开首页 `/`，查看核心 Prompt、运行队列、资产库与防护状态
 3. **Prompts** → 进入某 Prompt → 编辑保存 → 自动生成新版本 → **Diff** 页对比
-4. **Datasets** 确认用例 → **Evaluations** 发起评测 → 打开报告页查看图表
-5. **Reviews** 提交并通过审核
-6. **Releases** 创建 10% 灰度 → 观察指标 → 必要时回滚
-7. **Audit** 查看操作记录
+4. **CLI** → 从 `.promptguard/prompts/*.md` 导入 Prompt，并用 `prompt run` 验证运行时防护
+5. **Datasets** 确认用例 → **Evaluations** 发起评测 → 打开报告页查看图表
+6. **Reviews** 提交并通过审核
+7. **Releases** 创建 10% 灰度 → 观察指标 → 必要时回滚
+8. **Audit** 查看操作记录
 
 CLI 等价示例：
 
 ```powershell
 pnpm cli -- init
+pnpm cli -- project init --sample
 pnpm cli -- prompt list
+pnpm cli -- prompt import --file .promptguard/prompts/customer-service.md --tags customer-service,production
+pnpm cli -- prompt run customer-service --input "我的订单什么时候到？"
 pnpm cli -- eval run --prompt <promptId> --version 1 --dataset <datasetId>
 pnpm cli -- report generate --run <runId> --format html
 ```
@@ -218,13 +275,19 @@ pnpm cli -- report generate --run <runId> --format html
 
 ```powershell
 pnpm cli -- init                          # 初始化数据库（通常用 db:migrate 即可）
+pnpm cli -- project init --sample          # 初始化 .promptguard 项目目录
 pnpm cli -- prompt list
 pnpm cli -- prompt create --name "..." --content "..."
+pnpm cli -- prompt create --name "..." --file .promptguard/prompts/foo.md
+pnpm cli -- prompt import --file .promptguard/prompts/foo.md --tags prod,agent
+pnpm cli -- prompt export <id> --file .promptguard/prompts/foo.md
+pnpm cli -- prompt save <id> --file .promptguard/prompts/foo.md --changelog "tighten policy"
+pnpm cli -- prompt run <id-or-name> --input "hello"
 pnpm cli -- dataset list
 pnpm cli -- eval run --prompt <id> --version 1 --dataset <id>
 pnpm cli -- security scan --prompt <id> --version 1
 pnpm cli -- review submit --prompt <id> --version 1
-pnpm cli -- release start --prompt <id> --version 1 --percent 10
+pnpm cli -- release start --prompt <id> --prompt-version 1 --percent 10 --note "canary"
 pnpm cli -- report generate --run <id> --format html
 ```
 
@@ -240,18 +303,19 @@ PromptGuard/
 │   ├── web/                 # Next.js 15 管理界面
 │   │   ├── app/             # App Router 页面与 API Routes
 │   │   └── components/
-│   │       └── template/    # generated-page.html 模板组件
+│   │       └── template/    # 桌面式应用外壳与通用组件
 │   └── cli/                 # Commander.js CLI
 ├── packages/
-│   └── core/                # 业务逻辑、SQLite、Drizzle、LLM 适配器
-│       ├── src/
-│       └── drizzle/         # SQL 迁移（0000_init.sql）
+│   ├── core/                # SDK 运行时、业务逻辑、SQLite、Drizzle、LLM 适配器
+│   │   ├── src/
+│   │   └── drizzle/         # SQL 迁移（0000_init.sql）
+│   └── python/              # Python SDK：from promptguard import GuardedPrompt
 ├── scripts/
 │   ├── setup.ps1            # Windows 一键安装
 │   └── package.ps1          # 打 zip 交付包
 ├── data/                    # SQLite（本地生成，不提交 git）
 ├── reports/                 # 导出报告（本地生成）
-├── generated-page.html      # UI 模板参考源文件
+├── generated-page.html      # 历史 UI 参考源文件
 ├── .env.example
 ├── pnpm-workspace.yaml
 └── package.json
@@ -262,7 +326,7 @@ PromptGuard/
 ```
 apps/web (UI + API) ──┐
 apps/cli (命令行)  ──┼──► @promptguard/core ──► SQLite (data/promptguard.db)
-                     └──► LLM 适配器 (mock / openai / anthropic)
+packages/python SDK ─┘                         └──► LLM 适配器 (mock / openai / anthropic)
 ```
 
 ---
@@ -322,12 +386,6 @@ pnpm seed
 pnpm db:generate   # 生成新迁移文件
 pnpm db:migrate    # 应用到本地库
 ```
-
-### 首页 Mission 筛选器
-
-当前为模板 UI 展示，**尚未接入列表过滤**，后续可在 `apps/web` 接 API 实现。
-
----
 
 ## 打包交付说明
 
