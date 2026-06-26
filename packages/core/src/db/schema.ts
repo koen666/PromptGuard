@@ -17,6 +17,20 @@ export const promptVersions = sqliteTable("prompt_versions", {
   versionNumber: integer("version_number").notNull(),
   content: text("content").notNull(),
   changelog: text("changelog").default(""),
+  status: text("status", {
+    enum: [
+      "draft",
+      "versioned",
+      "evaluated",
+      "security_checked",
+      "review_pending",
+      "approved",
+      "gray",
+      "active",
+      "rejected",
+      "rolled_back",
+    ],
+  }).notNull().default("versioned"),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 
@@ -70,7 +84,7 @@ export const systemConfig = sqliteTable("system_config", {
 
 export const modelConfig = sqliteTable("model_config", {
   id: text("id").primaryKey(),
-  provider: text("provider", { enum: ["mock", "openai", "anthropic"] }).notNull(),
+  provider: text("provider", { enum: ["mock", "openai", "anthropic", "ollama"] }).notNull(),
   model: text("model").notNull(),
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
   updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
@@ -193,6 +207,7 @@ export const securityFindings = sqliteTable("security_findings", {
   modelOutput: text("model_output").notNull(),
   riskLevel: text("risk_level", { enum: ["low", "medium", "high", "critical"] }).notNull(),
   description: text("description").notNull(),
+  recommendation: text("recommendation").default(""),
   passed: integer("passed", { mode: "boolean" }).notNull(),
 });
 

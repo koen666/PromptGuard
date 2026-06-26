@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { getDatabasePath, getLlmConfig, type LlmProvider } from "../config.js";
+import { resetLlmAdapter } from "../adapters/llm/index.js";
 import { alertRules, modelConfig, systemConfig } from "../db/schema.js";
 import { getDb } from "../db/client.js";
 import { createId } from "../utils/id.js";
@@ -19,6 +20,8 @@ export async function getSystemSettings() {
     databasePath: getDatabasePath(),
     openaiModel: values.openaiModel ?? envConfig.openaiModel,
     anthropicModel: values.anthropicModel ?? envConfig.anthropicModel,
+    ollamaModel: values.ollamaModel ?? envConfig.ollamaModel,
+    ollamaBaseUrl: values.ollamaBaseUrl ?? envConfig.ollamaBaseUrl,
     hasOpenAiKey: !!(values.openaiApiKey || envConfig.openaiApiKey),
     hasAnthropicKey: !!(values.anthropicApiKey || envConfig.anthropicApiKey),
     models,
@@ -30,12 +33,14 @@ export async function updateSystemSettings(input: {
   provider?: LlmProvider;
   openaiModel?: string;
   anthropicModel?: string;
+  ollamaModel?: string;
+  ollamaBaseUrl?: string;
   openaiApiKey?: string;
   anthropicApiKey?: string;
   alertRules?: Array<{ metric: string; operator: ">" | ">=" | "<" | "<="; threshold: number; severity: "low" | "medium" | "high"; enabled: boolean }>;
   actor?: string;
 }) {
-  if (input.provider && !["mock", "openai", "anthropic"].includes(input.provider)) {
+  if (input.provider && !["mock", "openai", "anthropic", "ollama"].includes(input.provider)) {
     throw new Error("Invalid provider");
   }
   await ensureDefaultSettings();
@@ -43,6 +48,8 @@ export async function updateSystemSettings(input: {
   if (input.provider) await upsertConfig("llmProvider", input.provider);
   if (input.openaiModel?.trim()) await upsertConfig("openaiModel", input.openaiModel.trim());
   if (input.anthropicModel?.trim()) await upsertConfig("anthropicModel", input.anthropicModel.trim());
+  if (input.ollamaModel?.trim()) await upsertConfig("ollamaModel", input.ollamaModel.trim());
+  if (input.ollamaBaseUrl?.trim()) await upsertConfig("ollamaBaseUrl", input.ollamaBaseUrl.trim());
   if (typeof input.openaiApiKey === "string" && input.openaiApiKey.trim()) {
     await upsertConfig("openaiApiKey", input.openaiApiKey.trim());
   }
@@ -53,6 +60,8 @@ export async function updateSystemSettings(input: {
   if (input.provider) process.env.LLM_PROVIDER = input.provider;
   if (input.openaiModel?.trim()) process.env.OPENAI_MODEL = input.openaiModel.trim();
   if (input.anthropicModel?.trim()) process.env.ANTHROPIC_MODEL = input.anthropicModel.trim();
+  if (input.ollamaModel?.trim()) process.env.OLLAMA_MODEL = input.ollamaModel.trim();
+  if (input.ollamaBaseUrl?.trim()) process.env.OLLAMA_BASE_URL = input.ollamaBaseUrl.trim();
   if (typeof input.openaiApiKey === "string" && input.openaiApiKey.trim()) {
     process.env.OPENAI_API_KEY = input.openaiApiKey.trim();
   }
@@ -63,6 +72,7 @@ export async function updateSystemSettings(input: {
   await upsertModel("mock", "mock-gpt", input.provider === "mock");
   if (input.openaiModel?.trim()) await upsertModel("openai", input.openaiModel.trim(), input.provider === "openai");
   if (input.anthropicModel?.trim()) await upsertModel("anthropic", input.anthropicModel.trim(), input.provider === "anthropic");
+  if (input.ollamaModel?.trim()) await upsertModel("ollama", input.ollamaModel.trim(), input.provider === "ollama");
 
   if (input.alertRules) {
     await db.delete(alertRules);
@@ -86,6 +96,7 @@ export async function updateSystemSettings(input: {
     actor: input.actor ?? "system",
     detail: input.provider ?? "config",
   });
+  resetLlmAdapter();
   return getSystemSettings();
 }
 
@@ -94,9 +105,12 @@ async function ensureDefaultSettings() {
   await upsertConfig("llmProvider", config.provider, false);
   await upsertConfig("openaiModel", config.openaiModel, false);
   await upsertConfig("anthropicModel", config.anthropicModel, false);
+  await upsertConfig("ollamaModel", config.ollamaModel, false);
+  await upsertConfig("ollamaBaseUrl", config.ollamaBaseUrl, false);
   await upsertModel("mock", "mock-gpt", config.provider === "mock", false);
   await upsertModel("openai", config.openaiModel, config.provider === "openai", false);
   await upsertModel("anthropic", config.anthropicModel, config.provider === "anthropic", false);
+  await upsertModel("ollama", config.ollamaModel, config.provider === "ollama", false);
   const db = getDb();
   const existingAlerts = await db.select().from(alertRules);
   if (!existingAlerts.length) {
@@ -119,7 +133,7 @@ async function upsertConfig(key: string, value: string, overwrite = true) {
   }
 }
 
-async function upsertModel(provider: "mock" | "openai" | "anthropic", model: string, enabled: boolean, overwrite = true) {
+async function upsertModel(provider: "mock" | "openai" | "anthropic" | "ollama", model: string, enabled: boolean, overwrite = true) {
   const db = getDb();
   const rows = await db.select().from(modelConfig).where(eq(modelConfig.provider, provider));
   const existing = rows[0];

@@ -48,9 +48,12 @@ export class OpenAiAdapter implements LlmAdapter {
         tokenCount,
         cost: tokenCount * 0.000005,
       };
-    } catch {
-      const mock = await this.fallback.complete(request);
-      return { ...mock, provider: `${this.provider}(fallback-mock)` };
+    } catch (error) {
+      if (process.env.PROMPTGUARD_ALLOW_MOCK_FALLBACK === "1") {
+        const mock = await this.fallback.complete(request);
+        return { ...mock, provider: `${this.provider}(fallback-mock)` };
+      }
+      throw error;
     }
   }
 

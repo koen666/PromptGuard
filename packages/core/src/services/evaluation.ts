@@ -8,6 +8,7 @@ import { maskSensitiveText } from "../utils/redaction.js";
 import { logAudit } from "./audit.js";
 import { getDataset } from "./dataset.js";
 import { getPromptVersion, getPromptVersionByNumber } from "./prompt.js";
+import { setPromptVersionStatus } from "./version-lifecycle.js";
 
 const DEFAULT_MODELS = ["mock-gpt", "mock-claude"];
 
@@ -55,7 +56,7 @@ export async function runEvaluation(input: {
 
   const config = getLlmConfig();
   const adapter = getLlmAdapter();
-  const models = input.models ?? DEFAULT_MODELS;
+  const models = input.models ?? (adapter.provider === "ollama" ? [config.ollamaModel] : DEFAULT_MODELS);
   const runId = createId("eval");
   const db = getDb();
 
@@ -147,6 +148,10 @@ export async function runEvaluation(input: {
     entityId: runId,
     detail: `status=${status} avg=${avgScore.toFixed(2)} provider=${config.provider} tokens=${totalTokens} cost=${totalCost.toFixed(6)}`,
   });
+
+  if (status === "completed") {
+    await setPromptVersionStatus(version.id, "evaluated", `evaluation=${runId} avg=${avgScore.toFixed(2)}`);
+  }
 
   return getEvaluationRun(runId);
 }

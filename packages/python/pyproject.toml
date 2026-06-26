@@ -2,8 +2,12 @@
 name = "promptguard"
 version = "0.1.0"
 description = "Lightweight Python SDK for PromptGuard prompt assets"
+readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []
+
+[project.scripts]
+promptguard = "promptguard.cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]

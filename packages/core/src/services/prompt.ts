@@ -68,6 +68,7 @@ export async function createPrompt(input: {
     versionNumber: 1,
     content: input.content,
     changelog: input.changelog ?? "Initial version",
+    status: "versioned",
   });
 
   if (input.tagNames?.length) {
@@ -133,6 +134,7 @@ export async function savePromptVersion(
     versionNumber: nextVersion,
     content: input.content,
     changelog: input.changelog ?? `Version ${nextVersion}`,
+    status: "versioned",
   });
 
   await db
@@ -193,6 +195,13 @@ export async function rollbackPrompt(promptId: string, versionNumber: number) {
     .update(prompts)
     .set({ activeVersionId: target.id, updatedAt: new Date().toISOString() })
     .where(eq(prompts.id, promptId));
+
+  await db
+    .update(promptVersions)
+    .set({ status: "rolled_back" })
+    .where(and(eq(promptVersions.promptId, promptId), inArray(promptVersions.status, ["gray", "active"])));
+
+  await db.update(promptVersions).set({ status: "active" }).where(eq(promptVersions.id, target.id));
 
   await logAudit({
     action: "rollback",

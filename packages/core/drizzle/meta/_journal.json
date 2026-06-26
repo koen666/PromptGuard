@@ -57,6 +57,13 @@
       "when": 1782034200000,
       "tag": "0007_reports_metrics_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1782495000000,
+      "tag": "0008_version_lifecycle_security_recommendation",
+      "breakpoints": true
     }
   ]
 }

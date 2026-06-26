@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button, Input, Select } from "@/components/ui";
 import { FieldLabel, Panel } from "@/components/template/sections";
 
-type Provider = "mock" | "openai" | "anthropic";
+type Provider = "mock" | "openai" | "anthropic" | "ollama";
 type AlertOperator = ">" | ">=" | "<" | "<=";
 type AlertSeverity = "low" | "medium" | "high";
 
@@ -21,6 +21,8 @@ interface SettingsState {
   databasePath: string;
   openaiModel: string;
   anthropicModel: string;
+  ollamaModel: string;
+  ollamaBaseUrl: string;
   hasOpenAiKey: boolean;
   hasAnthropicKey: boolean;
   alerts: AlertRuleForm[];
@@ -30,6 +32,8 @@ export function SettingsForm({ initialSettings }: { initialSettings: SettingsSta
   const [provider, setProvider] = useState<Provider>(initialSettings.provider);
   const [openaiModel, setOpenaiModel] = useState(initialSettings.openaiModel);
   const [anthropicModel, setAnthropicModel] = useState(initialSettings.anthropicModel);
+  const [ollamaModel, setOllamaModel] = useState(initialSettings.ollamaModel);
+  const [ollamaBaseUrl, setOllamaBaseUrl] = useState(initialSettings.ollamaBaseUrl);
   const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [anthropicApiKey, setAnthropicApiKey] = useState("");
   const [hasOpenAiKey, setHasOpenAiKey] = useState(initialSettings.hasOpenAiKey);
@@ -67,6 +71,8 @@ export function SettingsForm({ initialSettings }: { initialSettings: SettingsSta
           provider,
           openaiModel,
           anthropicModel,
+          ollamaModel,
+          ollamaBaseUrl,
           openaiApiKey: openaiApiKey.trim() || undefined,
           anthropicApiKey: anthropicApiKey.trim() || undefined,
           alertRules: alerts,
@@ -97,7 +103,17 @@ export function SettingsForm({ initialSettings }: { initialSettings: SettingsSta
               <option value="mock">mock</option>
               <option value="openai">openai</option>
               <option value="anthropic">anthropic</option>
+              <option value="ollama">ollama 本地模型</option>
             </Select>
+          </div>
+          <div className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <FieldLabel>Ollama 本地模型</FieldLabel>
+            <Input value={ollamaModel} onChange={(e) => setOllamaModel(e.target.value)} placeholder="qwen2.5:7b" />
+            <p className="mt-1 text-xs text-white/40">例如 qwen2.5:7b、llama3.2:latest。选择 ollama 后，评测和安全扫描会请求本机 Ollama。</p>
+          </div>
+          <div>
+            <FieldLabel>Ollama 地址</FieldLabel>
+            <Input value={ollamaBaseUrl} onChange={(e) => setOllamaBaseUrl(e.target.value)} placeholder="http://127.0.0.1:11434" />
           </div>
           <div>
             <FieldLabel>OpenAI 模型</FieldLabel>

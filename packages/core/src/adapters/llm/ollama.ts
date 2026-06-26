@@ -7,46 +7,50 @@ import type {
   SecurityAssessment,
 } from "./types.js";
 
-export class AnthropicAdapter implements LlmAdapter {
-  readonly provider = "anthropic";
+export class OllamaAdapter implements LlmAdapter {
+  readonly provider = "ollama";
   private fallback = new MockLlmAdapter();
 
   constructor(
-    private apiKey: string,
     private defaultModel: string,
+    private baseUrl: string,
   ) {}
 
   async complete(request: LlmCompletionRequest): Promise<LlmCompletionResult> {
     const start = Date.now();
+    const model = request.model && !request.model.startsWith("mock-") && request.model !== "security-probe"
+      ? request.model
+      : this.defaultModel;
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/api/chat`, {
         method: "POST",
-        headers: {
-          "x-api-key": this.apiKey,
-          "anthropic-version": "2023-06-01",
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: request.model || this.defaultModel,
-          max_tokens: 1024,
-          system: request.systemPrompt,
-          messages: [{ role: "user", content: request.userInput }],
+          model,
+          stream: false,
+          messages: [
+            { role: "system", content: request.systemPrompt },
+            { role: "user", content: request.userInput },
+          ],
+          options: {
+            temperature: 0.2,
+          },
         }),
       });
       if (!res.ok) throw new Error(await res.text());
       const data = (await res.json()) as {
-        content: Array<{ type: string; text?: string }>;
-        usage?: { input_tokens?: number; output_tokens?: number };
+        message?: { content?: string };
+        prompt_eval_count?: number;
+        eval_count?: number;
       };
-      const text = data.content.find((c) => c.type === "text")?.text ?? "";
-      const tokenCount = (data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0);
+      const tokenCount = (data.prompt_eval_count ?? 0) + (data.eval_count ?? 0);
       return {
-        output: text,
+        output: data.message?.content ?? "",
         latencyMs: Date.now() - start,
-        model: request.model || this.defaultModel,
+        model,
         provider: this.provider,
         tokenCount,
-        cost: tokenCount * 0.000006,
+        cost: 0,
       };
     } catch (error) {
       if (process.env.PROMPTGUARD_ALLOW_MOCK_FALLBACK === "1") {

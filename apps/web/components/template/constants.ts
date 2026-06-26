@@ -23,6 +23,7 @@ export const NAV_LINKS = [
   { href: "/security", label: "安全", icon: "solar:shield-check-linear" },
   { href: "/reviews", label: "审核", icon: "solar:clipboard-check-linear" },
   { href: "/releases", label: "发布", icon: "solar:rocket-2-linear" },
+  { href: "/reports", label: "报告", icon: "solar:document-text-linear" },
   { href: "/audit", label: "审计", icon: "solar:document-add-linear" },
   { href: "/settings", label: "设置", icon: "solar:settings-linear" },
 ] as const;

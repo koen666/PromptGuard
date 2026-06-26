@@ -47,6 +47,7 @@ export default async function ReviewsPage() {
           reviews.map((r, i) => (
             <div key={r.id} className="grid border-b border-white/10 last:border-b-0 md:grid-cols-[1fr_auto]">
               <TemplateListItem
+                href={`/reviews/${r.id}`}
                 index={i}
                 icon="solar:clipboard-check-linear"
                 name={`Prompt ${r.promptId.slice(0, 12)}…`}

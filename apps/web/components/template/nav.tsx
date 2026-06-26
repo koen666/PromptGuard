@@ -12,7 +12,7 @@ export function TemplateNav() {
 
   return (
     <>
-      <header className="fixed left-3 right-3 top-3 z-50 h-12 rounded-lg border border-white/10 bg-[#171a1b]/88 shadow-[0_18px_55px_rgba(0,0,0,0.32)] backdrop-blur-xl md:left-[92px]">
+      <header className="fixed left-3 right-3 top-3 z-50 h-12 rounded-lg border border-white/[0.08] bg-[#151819]/92 shadow-[0_14px_42px_rgba(0,0,0,0.24)] backdrop-blur-xl md:left-[92px]">
         <div className="flex h-full items-center justify-between gap-3 px-4">
           <div className="flex items-center gap-3">
             <div className="hidden items-center gap-2 md:flex" aria-hidden>
@@ -53,15 +53,14 @@ export function TemplateNav() {
         </div>
       </header>
 
-      <aside className="fixed bottom-3 left-3 top-3 z-40 hidden w-[72px] overflow-hidden rounded-[22px] border border-white/[0.18] bg-white/[0.075] shadow-[0_24px_90px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.26),inset_0_-1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl md:block">
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,0.18),rgba(255,255,255,0.035)_38%,rgba(255,255,255,0.07)_100%)]" />
-        <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-white/55" />
-        <div className="pointer-events-none absolute inset-y-6 left-0 w-px bg-white/25" />
+      <aside className="fixed bottom-3 left-3 top-3 z-40 hidden w-[72px] overflow-hidden rounded-lg border border-white/[0.10] bg-[#151819]/92 shadow-[0_20px_70px_rgba(0,0,0,0.30)] backdrop-blur-2xl md:block">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))]" />
+        <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-white/18" />
 
         <div className="relative flex h-full flex-col items-center py-4">
           <Link
             href="/"
-            className="mb-6 flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.24] bg-white/[0.18] text-[#f3f0df] shadow-[0_12px_30px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.28)] backdrop-blur-xl"
+            className="mb-6 flex h-11 w-11 items-center justify-center rounded-lg border border-white/[0.14] bg-white/[0.08] text-[#f3f0df] shadow-[0_10px_24px_rgba(0,0,0,0.18)] backdrop-blur-xl"
             title="PromptGuard"
           >
             <Iconify icon="solar:shield-keyhole-bold-duotone" width="23" />
@@ -78,8 +77,8 @@ export function TemplateNav() {
                   aria-label={link.label}
                   className={
                     active
-                      ? "flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.28] bg-white/[0.20] text-white shadow-[0_12px_26px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.24)] backdrop-blur-xl"
-                      : "flex h-11 w-11 items-center justify-center rounded-xl border border-transparent text-white/[0.58] transition hover:border-white/[0.18] hover:bg-white/[0.12] hover:text-white hover:shadow-[0_10px_22px_rgba(0,0,0,0.18)]"
+                      ? "flex h-11 w-11 items-center justify-center rounded-lg border border-white/[0.16] bg-white/[0.12] text-white shadow-[0_10px_22px_rgba(0,0,0,0.18)] backdrop-blur-xl"
+                      : "flex h-11 w-11 items-center justify-center rounded-lg border border-transparent text-white/[0.54] transition hover:border-white/[0.12] hover:bg-white/[0.08] hover:text-white"
                   }
                 >
                   <Iconify icon={link.icon} width="22" />

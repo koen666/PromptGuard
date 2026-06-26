@@ -166,6 +166,12 @@ export async function listReportRecords(limit = 100) {
   return db.select().from(reportRecords).orderBy(desc(reportRecords.createdAt)).limit(limit);
 }
 
+export async function getReportRecord(id: string) {
+  const db = getDb();
+  const [record] = await db.select().from(reportRecords).where(eq(reportRecords.id, id)).limit(1);
+  return record ?? null;
+}
+
 async function recordReport(input: {
   id: string;
   type: ReportType;
@@ -197,8 +203,8 @@ function renderEvaluationSection(report: ReportData) {
       <p>总成本: $${(run.totalCost ?? 0).toFixed(4)}</p>
       <p>错误: ${escapeHtml(maskSensitiveText(run.errorMessage ?? "无"))}</p>
       <table>
-        <tr><th>Model</th><th>Relevance</th><th>Format</th><th>Latency</th><th>Token</th><th>Cost</th><th>Passed</th><th>Error</th></tr>
-        ${run.results.map((r) => `<tr><td>${escapeHtml(r.model)}</td><td>${r.relevanceScore.toFixed(2)}</td><td>${r.formatScore.toFixed(2)}</td><td>${r.latencyMs}ms</td><td>${r.tokenCount ?? 0}</td><td>$${(r.cost ?? 0).toFixed(5)}</td><td>${r.passed ? "pass" : "fail"}</td><td>${escapeHtml(maskSensitiveText(r.errorMessage ?? ""))}</td></tr>`).join("")}
+        <tr><th>Model</th><th>Relevance</th><th>Format</th><th>Latency</th><th>Token</th><th>Cost</th><th>Passed</th><th>Output / Error</th></tr>
+        ${run.results.map((r) => `<tr><td>${escapeHtml(r.model)}</td><td>${r.relevanceScore.toFixed(2)}</td><td>${r.formatScore.toFixed(2)}</td><td>${r.latencyMs}ms</td><td>${r.tokenCount ?? 0}</td><td>$${(r.cost ?? 0).toFixed(5)}</td><td>${r.passed ? "pass" : "fail"}</td><td>${escapeHtml(maskSensitiveText(r.errorMessage || r.output || "").slice(0, 500))}</td></tr>`).join("")}
       </table>
     </section>`;
 }
@@ -221,8 +227,8 @@ function renderSecuritySection(report: ReportData) {
       <p>风险分: ${report.security.riskScore?.toFixed(2) ?? "-"}</p>
       <p>通过: ${report.security.passed ? "是" : "否"}</p>
       <table>
-        <tr><th>Finding</th><th>Risk</th><th>Passed</th><th>Evidence</th></tr>
-        ${report.security.findings.map((f) => `<tr><td>${escapeHtml(f.testName)}</td><td>${f.riskLevel}</td><td>${f.passed ? "pass" : "fail"}</td><td>${escapeHtml(maskSensitiveText(f.modelOutput))}</td></tr>`).join("")}
+        <tr><th>Finding</th><th>Risk</th><th>Passed</th><th>Attack / Evidence</th><th>Recommendation</th></tr>
+        ${report.security.findings.map((f) => `<tr><td>${escapeHtml(f.testName)}</td><td>${f.riskLevel}</td><td>${f.passed ? "pass" : "fail"}</td><td><strong>Input:</strong> ${escapeHtml(maskSensitiveText(f.attackInput))}<br/><strong>Output:</strong> ${escapeHtml(maskSensitiveText(f.modelOutput))}</td><td>${escapeHtml(f.recommendation ?? "")}</td></tr>`).join("")}
       </table>
     </section>`;
 }

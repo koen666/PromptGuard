@@ -23,6 +23,7 @@ export type RuntimeFinding = {
   level: RuntimeFindingLevel;
   description: string;
   evidence: string;
+  recommendation?: string;
 };
 
 export type GuardedPromptSnapshot = {
@@ -123,7 +124,28 @@ const INJECTION_RULES: Array<{
     description: "User input asks the assistant to ignore tool, data, or access boundaries.",
     pattern: /\b(no restrictions|without constraints|ignore safety|disable guard|turn off guard|raw mode)\b/i,
   },
+  {
+    name: "Structured exfiltration",
+    level: "critical",
+    description: "User input tries to smuggle protected instructions into a field, code block, or debug output.",
+    pattern: /\b(json|yaml|xml|markdown|code block|debug|log)\b.{0,80}\b(system prompt|hidden prompt|internal rules|developer message)\b|把.{0,30}(系统提示|隐藏规则|内部规则|提示词).{0,30}(json|字段|代码块|日志|debug)/i,
+  },
+  {
+    name: "Scoring rule extraction",
+    level: "high",
+    description: "User input asks for internal scoring, review, policy, or routing rules.",
+    pattern: /\b(scoring rubric|evaluation rule|review criteria|routing policy|gray policy|internal policy)\b|评分标准|审核规则|路由策略|灰度规则|内部策略/i,
+  },
 ];
+
+const RECOMMENDATIONS: Record<string, string> = {
+  "Instruction override": "Refuse the override request and keep system/developer instructions authoritative.",
+  "Prompt exfiltration": "Block the request before model invocation; never transform or summarize protected prompt text for users.",
+  "Role hijack": "Treat role-change framing as untrusted user content and continue under the configured application role.",
+  "Tool boundary bypass": "Keep tool and data boundaries enforced by the host application, not by the model response alone.",
+  "Structured exfiltration": "Scan structured outputs and debug fields for prompt echoes before returning them.",
+  "Scoring rule extraction": "Expose only public behavior expectations; keep review rubrics and routing rules internal.",
+};
 
 const BLOCKED_LEVELS: RuntimeFindingLevel[] = ["high", "critical"];
 
@@ -137,6 +159,7 @@ export function inspectPromptInput(input: string): RuntimeFinding[] {
       level: rule.level,
       description: rule.description,
       evidence: maskSensitiveText(match[0]).slice(0, 220),
+      recommendation: RECOMMENDATIONS[rule.name],
     });
   }
   return findings;
@@ -257,6 +280,7 @@ export class GuardedPrompt {
           level: "critical",
           description: "Model output appears to contain protected prompt content.",
           evidence: result.output.slice(0, 220),
+          recommendation: "Block the output and tighten the protected prompt or attack-test suite before release.",
         },
       ];
       result.output = "PromptGuard blocked the model output because it appeared to expose protected instructions.";
@@ -441,7 +465,26 @@ function leaksProtectedPrompt(output: string, protectedPrompt: string) {
     .filter((line) => line.length >= 32)
     .slice(0, 8);
 
-  return importantLines.some((line) => normalizedOutput.includes(line.toLowerCase()));
+  if (importantLines.some((line) => normalizedOutput.includes(line.toLowerCase()))) return true;
+
+  const protectedTokens = tokenizeForSimilarity(protectedPrompt);
+  if (protectedTokens.length < 12) return false;
+  const outputTokens = new Set(tokenizeForSimilarity(output));
+  const overlap = protectedTokens.filter((token) => outputTokens.has(token)).length;
+  return overlap / protectedTokens.length >= 0.42;
+}
+
+function tokenizeForSimilarity(value: string) {
+  return Array.from(
+    new Set(
+      value
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s]/gu, " ")
+        .split(/\s+/)
+        .filter((token) => token.length >= 3)
+        .slice(0, 120),
+    ),
+  );
 }
 
 async function auditRuntime(action: string, result: GuardedPromptRunResult) {

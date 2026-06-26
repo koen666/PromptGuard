@@ -11,6 +11,8 @@ export * from "./services/evaluation.js";
 export * from "./services/security.js";
 export * from "./services/release.js";
 export * from "./services/report.js";
+export { getReportRecord } from "./services/report.js";
 export * from "./services/settings.js";
+export * from "./services/version-lifecycle.js";
 export * from "./runtime.js";
 export * from "./workspace.js";

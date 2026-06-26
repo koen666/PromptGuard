@@ -17,6 +17,7 @@ import {
 import { createId } from "../utils/id.js";
 import { logAudit } from "./audit.js";
 import { getPrompt, getPromptVersionByNumber } from "./prompt.js";
+import { isAtLeastVersionStatus, setPromptVersionStatus } from "./version-lifecycle.js";
 
 const DEFAULT_ENVIRONMENT = "production";
 
@@ -33,6 +34,9 @@ export async function submitReview(input: {
 
   const db = getDb();
   const evidence = await getReviewEvidence(version.id);
+  if (!isAtLeastVersionStatus(version.status, "security_checked")) {
+    throw new Error("Review requires a completed evaluation and passed security scan");
+  }
   const id = createId("review");
 
   await db.insert(reviewRequests).values({
@@ -50,6 +54,7 @@ export async function submitReview(input: {
     .update(prompts)
     .set({ status: "draft", updatedAt: new Date().toISOString() })
     .where(eq(prompts.id, input.promptId));
+  await setPromptVersionStatus(version.id, "review_pending", `review=${id}`);
 
   await logAudit({ action: "review_submit", entityType: "review", entityId: id });
   return id;
@@ -60,6 +65,12 @@ export async function listReviews(status?: "pending" | "approved" | "rejected") 
   const all = await db.select().from(reviewRequests).orderBy(desc(reviewRequests.createdAt));
   if (!status) return all;
   return all.filter((r) => r.status === status);
+}
+
+export async function getReview(id: string) {
+  const db = getDb();
+  const [review] = await db.select().from(reviewRequests).where(eq(reviewRequests.id, id));
+  return review ?? null;
 }
 
 export async function approveReview(id: string, reviewedBy = "reviewer", comment = "") {
@@ -85,8 +96,9 @@ export async function approveReview(id: string, reviewedBy = "reviewer", comment
 
   await db
     .update(prompts)
-    .set({ status: "active", activeVersionId: review.promptVersionId, updatedAt: new Date().toISOString() })
+    .set({ status: "draft", updatedAt: new Date().toISOString() })
     .where(eq(prompts.id, review.promptId));
+  await setPromptVersionStatus(review.promptVersionId, "approved", `review=${id}`);
 
   await logAudit({ action: "review_approve", entityType: "review", entityId: id });
   return review;
@@ -101,6 +113,7 @@ export async function rejectReview(id: string, reviewedBy = "reviewer", comment 
     .update(reviewRequests)
     .set({ status: "rejected", reviewedBy, comment, reviewedAt: new Date().toISOString() })
     .where(eq(reviewRequests.id, id));
+  await setPromptVersionStatus(review.promptVersionId, "rejected", `review=${id}`);
 
   await logAudit({ action: "review_reject", entityType: "review", entityId: id });
   return review;
@@ -170,8 +183,10 @@ export async function startGrayRelease(input: {
       .update(prompts)
       .set({ status: "active", activeVersionId: version.id, updatedAt: new Date().toISOString() })
       .where(eq(prompts.id, input.promptId));
+    await setPromptVersionStatus(version.id, "active", `release=${id} traffic=100`);
   } else {
     await db.update(prompts).set({ status: "active", updatedAt: new Date().toISOString() }).where(eq(prompts.id, input.promptId));
+    await setPromptVersionStatus(version.id, "gray", `release=${id} traffic=${input.trafficPercent}`);
   }
 
   await logAudit({
@@ -251,6 +266,14 @@ export async function expandGrayRelease(input: {
     detail: `${input.trafficPercent}% ${environment} ${input.note?.trim()}`,
   });
 
+  if (policy.grayVersionId) {
+    await setPromptVersionStatus(
+      policy.grayVersionId,
+      input.trafficPercent === 100 ? "active" : "gray",
+      `release=${activeRelease.id} traffic=${input.trafficPercent}`,
+    );
+  }
+
   return getGrayRelease(activeRelease.id);
 }
 
@@ -278,6 +301,7 @@ export async function promoteRelease(promptId: string, environment = DEFAULT_ENV
     .update(prompts)
     .set({ activeVersionId: release.promptVersionId, status: "active", updatedAt: new Date().toISOString() })
     .where(eq(prompts.id, promptId));
+  await setPromptVersionStatus(release.promptVersionId, "active", `release=${release.id} promoted`);
   await upsertRoutePolicy({
     promptId,
     environment: normalizeEnvironment(environment),
@@ -356,6 +380,10 @@ async function upsertRoutePolicy(input: {
 
 async function assertVersionApproved(promptVersionId: string) {
   const db = getDb();
+  const [version] = await db.select().from(promptVersions).where(eq(promptVersions.id, promptVersionId));
+  if (!version || !isAtLeastVersionStatus(version.status, "approved")) {
+    throw new Error("Version must be approved before gray release");
+  }
   const [approved] = await db
     .select()
     .from(reviewRequests)
@@ -513,6 +541,11 @@ export async function rollbackRelease(promptId: string, versionNumber: number, e
     .update(prompts)
     .set({ status: "active", activeVersionId: version.id, updatedAt: new Date().toISOString() })
     .where(eq(prompts.id, promptId));
+  await db
+    .update(promptVersions)
+    .set({ status: "rolled_back" })
+    .where(and(eq(promptVersions.promptId, promptId), inArray(promptVersions.status, ["gray", "active"])));
+  await setPromptVersionStatus(version.id, "active", `rollback to v${versionNumber}`);
 
   await upsertRoutePolicy({
     promptId,
