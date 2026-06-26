@@ -23,7 +23,7 @@ export function TemplateNav() {
             <div className="h-5 w-px bg-white/10" />
             <div className="min-w-0">
               <div className="text-sm font-semibold text-white">PromptGuard</div>
-            <div className="text-[11px] text-white/[0.42]">{activeLink.label}</div>
+              <div className="text-[11px] text-white/[0.42]">{activeLink.label}</div>
             </div>
           </div>
 
@@ -53,11 +53,15 @@ export function TemplateNav() {
         </div>
       </header>
 
-      <aside className="fixed bottom-3 left-3 top-3 z-40 hidden w-[68px] rounded-lg border border-white/10 bg-[#181b1c]/86 shadow-[0_20px_70px_rgba(0,0,0,0.38)] backdrop-blur-xl md:block">
-        <div className="flex h-full flex-col items-center py-4">
+      <aside className="fixed bottom-3 left-3 top-3 z-40 hidden w-[72px] overflow-hidden rounded-[22px] border border-white/[0.18] bg-white/[0.075] shadow-[0_24px_90px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.26),inset_0_-1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl md:block">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,0.18),rgba(255,255,255,0.035)_38%,rgba(255,255,255,0.07)_100%)]" />
+        <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-white/55" />
+        <div className="pointer-events-none absolute inset-y-6 left-0 w-px bg-white/25" />
+
+        <div className="relative flex h-full flex-col items-center py-4">
           <Link
             href="/"
-            className="mb-6 flex h-11 w-11 items-center justify-center rounded-lg border border-white/10 bg-[#f3f0df] text-[#101112] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]"
+            className="mb-6 flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.24] bg-white/[0.18] text-[#f3f0df] shadow-[0_12px_30px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.28)] backdrop-blur-xl"
             title="PromptGuard"
           >
             <Iconify icon="solar:shield-keyhole-bold-duotone" width="23" />
@@ -74,8 +78,8 @@ export function TemplateNav() {
                   aria-label={link.label}
                   className={
                     active
-                      ? "flex h-11 w-11 items-center justify-center rounded-lg border border-white/[0.12] bg-white/[0.14] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
-                      : "flex h-11 w-11 items-center justify-center rounded-lg text-white/[0.48] transition hover:bg-white/[0.07] hover:text-white"
+                      ? "flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.28] bg-white/[0.20] text-white shadow-[0_12px_26px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.24)] backdrop-blur-xl"
+                      : "flex h-11 w-11 items-center justify-center rounded-xl border border-transparent text-white/[0.58] transition hover:border-white/[0.18] hover:bg-white/[0.12] hover:text-white hover:shadow-[0_10px_22px_rgba(0,0,0,0.18)]"
                   }
                 >
                   <Iconify icon={link.icon} width="22" />
@@ -84,7 +88,7 @@ export function TemplateNav() {
             })}
           </nav>
 
-          <div className="mt-4 h-1.5 w-1.5 rounded-full bg-[#d6c985]" />
+          <div className="mt-4 h-2 w-2 rounded-full border border-white/[0.28] bg-[#d6c985] shadow-[0_0_18px_rgba(214,201,133,0.52)]" />
         </div>
       </aside>
     </>
