@@ -12,4 +12,5 @@ __pycache__/
 .promptguard-session.json
 data/
 reports/
+report_evidence/
 .DS_Store

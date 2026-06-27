@@ -60,8 +60,9 @@ export function TemplateNav() {
         </div>
       </header>
 
-      <aside className="fixed bottom-3 left-3 top-3 z-40 hidden w-[276px] overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#202127]/92 shadow-[0_30px_90px_rgba(0,0,0,0.42)] backdrop-blur-2xl md:block">
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018))]" />
+      <aside className="fixed bottom-3 left-3 top-3 z-40 hidden w-[276px] overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#202127]/78 shadow-[0_30px_90px_rgba(0,0,0,0.36)] backdrop-blur-2xl md:block">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.014))]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_28%_2%,rgba(112,103,255,0.16),transparent_34%)]" />
         <div className="relative flex h-full flex-col p-4">
           <div className="mb-5 flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#67e8f9,#7067ff)] text-lg font-bold text-white shadow-[0_16px_34px_rgba(112,103,255,0.34)]">
