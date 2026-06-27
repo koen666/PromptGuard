@@ -8,8 +8,12 @@ import hashlib
 import json
 import os
 import re
-import sqlite3
 import uuid
+
+try:
+    import mysql.connector
+except ImportError:  # pragma: no cover - surfaced at runtime with an actionable message.
+    mysql = None
 
 
 Runner = Callable[..., str | dict[str, Any]]
@@ -141,28 +145,63 @@ def _project_root(start: Path | None = None) -> Path:
         current = current.parent
 
 
-def _database_path(db_path: str | Path | None = None) -> Path:
-    if db_path:
-        return Path(db_path).expanduser().resolve()
-
-    env_path = os.environ.get("DATABASE_URL")
-    root = _project_root()
-    if env_path:
-        candidate = Path(env_path).expanduser()
-        return candidate.resolve() if candidate.is_absolute() else (root / candidate).resolve()
-    return (root / "data" / "promptguard.db").resolve()
+def _env_value(*names: str, default: str = "") -> str:
+    _load_root_env()
+    for name in names:
+        value = os.environ.get(name)
+        if value:
+            return value
+    return default
 
 
-def _connect(db_path: str | Path | None = None) -> sqlite3.Connection:
-    path = _database_path(db_path)
-    if not path.exists():
-        raise FileNotFoundError(
-            f"PromptGuard database not found: {path}. Run `pnpm db:migrate` or point DATABASE_URL to an existing database."
-        )
-    conn = sqlite3.connect(path)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+def _load_root_env() -> None:
+    env_path = _project_root() / ".env"
+    if not env_path.exists():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, value = stripped.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
+
+
+def _mysql_config() -> dict[str, Any]:
+    host = _env_value("PROMPTGUARD_DB_HOST", "PROMPTGUARD_REMOTE_DB_HOST", "DB_HOST")
+    user = _env_value("PROMPTGUARD_DB_USER", "PROMPTGUARD_REMOTE_DB_USER", "DB_USER")
+    password = _env_value("PROMPTGUARD_DB_PASSWORD", "PROMPTGUARD_REMOTE_DB_PASSWORD", "DB_PASSWORD")
+    database = _env_value("PROMPTGUARD_DB_NAME", "PROMPTGUARD_REMOTE_DB_NAME", "DB_NAME", default="PROMPTGUARD")
+    port = int(_env_value("PROMPTGUARD_DB_PORT", "PROMPTGUARD_REMOTE_DB_PORT", "DB_PORT", default="3306"))
+    if not host or not user:
+        raise RuntimeError("Missing MySQL config. Set PROMPTGUARD_DB_HOST, PROMPTGUARD_DB_USER, PROMPTGUARD_DB_PASSWORD, and PROMPTGUARD_DB_NAME.")
+    return {"host": host, "port": port, "user": user, "password": password, "database": database}
+
+
+class _PromptGuardMysqlConnection:
+    def __init__(self):
+        if mysql is None:
+            raise RuntimeError("mysql-connector-python is required. Install the package with `pip install -e packages/python`.")
+        self._conn = mysql.connector.connect(**_mysql_config())
+
+    def __enter__(self) -> "_PromptGuardMysqlConnection":
+        return self
+
+    def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+        if exc_type is not None:
+            self._conn.rollback()
+        self._conn.close()
+
+    def execute(self, sql: str, params: Iterable[Any] = ()) -> Any:
+        cursor = self._conn.cursor(dictionary=True)
+        cursor.execute(sql.replace("?", "%s"), tuple(params))
+        return cursor
+
+    def commit(self) -> None:
+        self._conn.commit()
+
+
+def _connect(_: str | Path | None = None) -> _PromptGuardMysqlConnection:
+    return _PromptGuardMysqlConnection()
 
 
 def init_project(root: str | Path = ".", *, sample: bool = True) -> Path:
@@ -173,7 +212,7 @@ def init_project(root: str | Path = ".", *, sample: bool = True) -> Path:
     prompts_dir.mkdir(parents=True, exist_ok=True)
     datasets_dir.mkdir(parents=True, exist_ok=True)
     config = {
-        "database": "data/promptguard.db",
+        "database": "mysql://env/PROMPTGUARD_DB",
         "default_environment": "production",
         "runtime_guard": {"block_unsafe_input": True, "output_leak_check": True},
     }
@@ -218,7 +257,7 @@ def _protected_system_prompt(name: str, content: str) -> str:
 
 class PromptGuardClient:
     def __init__(self, db_path: str | Path | None = None):
-        self.db_path = _database_path(db_path)
+        self.db_path = db_path
 
     def list_prompts(self) -> list[dict[str, Any]]:
         with _connect(self.db_path) as conn:
@@ -316,13 +355,13 @@ class PromptGuardClient:
 
     def _select_version(
         self,
-        conn: sqlite3.Connection,
-        prompt: sqlite3.Row,
+        conn: _PromptGuardMysqlConnection,
+        prompt: dict[str, Any],
         *,
         environment: str,
         version_number: int | None,
         route_key: str,
-    ) -> sqlite3.Row:
+    ) -> dict[str, Any]:
         if version_number is not None:
             version = conn.execute(
                 "select * from prompt_versions where prompt_id = ? and version_number = ?",
@@ -359,7 +398,7 @@ class PromptGuardClient:
             raise LookupError(f"Prompt has no versions: {prompt['id']}")
         return version
 
-    def _sync_tags(self, conn: sqlite3.Connection, prompt_id: str, tag_names: Iterable[str]) -> None:
+    def _sync_tags(self, conn: _PromptGuardMysqlConnection, prompt_id: str, tag_names: Iterable[str]) -> None:
         conn.execute("delete from prompt_tags where prompt_id = ?", (prompt_id,))
         for name in tag_names:
             row = conn.execute("select * from tags where name = ?", (name,)).fetchone()

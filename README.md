@@ -92,7 +92,7 @@ print(response.output)
 pip install -e packages/python
 ```
 
-Python SDK 仍保留轻量本地示例实现；主 TypeScript SDK / CLI / Web 当前统一使用服务器 MySQL 中的 PromptGuard 资产库。
+Python SDK 与 TypeScript SDK / CLI / Web 统一读取 `PROMPTGUARD_DB_*` 指向的服务器 MySQL 资产库。
 
 ---
 
@@ -176,7 +176,7 @@ const result = await prompt.run(message, {
 | **pnpm** | 9+（仓库锁定 `pnpm@9.15.4`） |
 | **操作系统** | Windows / macOS / Linux 均可 |
 
-> 当前主库使用 MySQL，不再依赖 `better-sqlite3` 原生模块。
+> 当前主库使用 MySQL，请确保 `.env` 中的 `PROMPTGUARD_DB_*` 能连接到服务器数据库。
 
 检查版本：
 
