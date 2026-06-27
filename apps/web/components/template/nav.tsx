@@ -11,9 +11,10 @@ import { getStatusLabel } from "./sections";
 const SEARCH_ALIASES: Record<string, string[]> = {
   "/": ["overview", "home", "dashboard", "workspace", "总览", "首页"],
   "/prompts": ["prompt", "prompts", "asset", "assets", "library", "资产", "资产库", "提示词"],
-  "/project": ["project", "remote", "push", "pull", "sync", "项目", "远程", "同步"],
+  "/project": ["project", "projects", "workspace", "prompt assets", "项目", "项目管理", "业务项目"],
   "/datasets": ["dataset", "datasets", "data", "case", "cases", "数据", "数据集", "用例"],
-  "/evaluations": ["evaluation", "evaluations", "eval", "score", "test", "评测", "测试"],
+  "/evaluations": ["evaluation", "evaluations", "eval", "score", "test", "评测", "测评", "测试"],
+  "/comparisons": ["comparison", "comparisons", "compare", "regression", "diff", "对比", "版本对比", "回归"],
   "/security": ["security", "scan", "shield", "guard", "安全", "扫描", "防护"],
   "/reviews": ["review", "reviews", "approval", "approve", "审核", "审批"],
   "/releases": ["release", "releases", "gray", "canary", "rollback", "发布", "灰度", "回滚"],
@@ -26,9 +27,10 @@ const SEARCH_ALIASES: Record<string, string[]> = {
 const SEARCH_DESCRIPTIONS: Record<string, string> = {
   "/": "工作台概览",
   "/prompts": "提示词资产库",
-  "/project": "项目 remote 与同步状态",
+  "/project": "业务项目与 Prompt 资产",
   "/datasets": "数据集与测试用例",
-  "/evaluations": "评测任务",
+  "/evaluations": "测评任务",
+  "/comparisons": "版本对比",
   "/security": "安全扫描",
   "/reviews": "审核队列",
   "/releases": "灰度发布",
@@ -60,9 +62,10 @@ type ExportOption = {
 const EXPORT_OPTIONS: ExportOption[] = [
   { label: "总览摘要", description: "当前工作台指标", endpoint: "/api/dashboard", filePrefix: "dashboard" },
   { label: "提示词资产", description: "提示词列表与版本摘要", endpoint: "/api/prompts", filePrefix: "prompts" },
-  { label: "项目状态", description: "remote 与 prompt 同步状态", endpoint: "/api/project", filePrefix: "project" },
+  { label: "项目资产", description: "业务项目与 Prompt 资产", endpoint: "/api/project", filePrefix: "project" },
   { label: "数据集", description: "数据集目录", endpoint: "/api/datasets", filePrefix: "datasets" },
   { label: "评测任务", description: "评测历史记录", endpoint: "/api/evaluations", filePrefix: "evaluations" },
+  { label: "版本对比", description: "版本对比历史", endpoint: "/api/evaluations/comparisons", filePrefix: "comparisons" },
   { label: "安全扫描", description: "安全扫描记录", endpoint: "/api/security", filePrefix: "security" },
   { label: "审核队列", description: "审核流程记录", endpoint: "/api/reviews", filePrefix: "reviews" },
   { label: "发布状态", description: "灰度发布状态与告警", endpoint: "/api/releases", filePrefix: "releases" },
@@ -77,13 +80,14 @@ function currentExportOption(pathname: string) {
   if (pathname.startsWith("/project")) return EXPORT_OPTIONS[2];
   if (pathname.startsWith("/datasets")) return EXPORT_OPTIONS[3];
   if (pathname.startsWith("/evaluations")) return EXPORT_OPTIONS[4];
-  if (pathname.startsWith("/security")) return EXPORT_OPTIONS[5];
-  if (pathname.startsWith("/reviews")) return EXPORT_OPTIONS[6];
-  if (pathname.startsWith("/releases")) return EXPORT_OPTIONS[7];
-  if (pathname.startsWith("/reports")) return EXPORT_OPTIONS[8];
-  if (pathname.startsWith("/audit")) return EXPORT_OPTIONS[9];
-  if (pathname.startsWith("/users")) return EXPORT_OPTIONS[10];
-  if (pathname.startsWith("/settings")) return EXPORT_OPTIONS[11];
+  if (pathname.startsWith("/comparisons")) return EXPORT_OPTIONS[5];
+  if (pathname.startsWith("/security")) return EXPORT_OPTIONS[6];
+  if (pathname.startsWith("/reviews")) return EXPORT_OPTIONS[7];
+  if (pathname.startsWith("/releases")) return EXPORT_OPTIONS[8];
+  if (pathname.startsWith("/reports")) return EXPORT_OPTIONS[9];
+  if (pathname.startsWith("/audit")) return EXPORT_OPTIONS[10];
+  if (pathname.startsWith("/users")) return EXPORT_OPTIONS[11];
+  if (pathname.startsWith("/settings")) return EXPORT_OPTIONS[12];
   return EXPORT_OPTIONS[0];
 }
 
@@ -604,11 +608,11 @@ export function TemplateNav() {
   const pathname = usePathname();
   const activeLink = NAV_LINKS.find((link) => pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href))) ?? NAV_LINKS[0];
   const isActiveHref = (href: string) => pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
-  const secondaryLinks = NAV_LINKS.slice(6);
-  const primaryLinks = NAV_LINKS.slice(0, 6);
+  const secondaryLinks = NAV_LINKS.slice(7);
+  const primaryLinks = NAV_LINKS.slice(0, 7);
   const quickLinks = [
     { href: "/prompts", icon: "solar:document-text-linear", label: "Prompt 资产" },
-    { href: "/evaluations", icon: "solar:chart-square-linear", label: "评测统计" },
+    { href: "/comparisons", icon: "solar:chart-square-linear", label: "版本对比" },
     { href: "/reviews", icon: "solar:bookmark-linear", label: "审核收藏" },
   ];
 

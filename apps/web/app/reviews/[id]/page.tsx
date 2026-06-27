@@ -20,6 +20,13 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
     review.securityScanId ? getSecurityScan(review.securityScanId) : Promise.resolve(null),
   ]);
   const version = prompt?.versions.find((item) => item.id === review.promptVersionId);
+  const diffFrom = Math.max(1, (version?.versionNumber ?? 1) - 1);
+  const diffTo = version?.versionNumber ?? 1;
+  const releaseChecks = [
+    { label: "评测完成", passed: evaluation?.status === "completed", detail: evaluation?.status ?? "missing" },
+    { label: "安全通过", passed: security?.status === "completed" && security.passed === true, detail: security ? (security.passed ? "passed" : "risk") : "missing" },
+    { label: "审核通过", passed: review.status === "approved", detail: review.status },
+  ];
 
   return (
     <>
@@ -61,6 +68,14 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
           <Panel>
             <h3 className="text-lg font-semibold text-white">审核操作</h3>
             <p className="mt-2 text-sm leading-6 text-white/45">确认评测和安全证据后，通过或驳回该版本。</p>
+            <div className="mt-4 space-y-2">
+              {releaseChecks.map((item) => (
+                <div key={item.label} className="flex items-center justify-between rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm">
+                  <span className="text-white/58">{item.label}</span>
+                  <span className={item.passed ? "text-emerald-300" : "text-amber-200"}>{item.detail}</span>
+                </div>
+              ))}
+            </div>
             <div className="mt-4">
               {review.status === "pending" ? (
                 <ReviewActions reviewId={review.id} />
@@ -104,7 +119,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
           tier={security?.passed ? "Pass" : "Fail"}
         />
         <TemplateListItem
-          href={prompt ? `/prompts/${prompt.id}/diff` : undefined}
+          href={prompt ? `/prompts/${prompt.id}/diff?from=${diffFrom}&to=${diffTo}` : undefined}
           index={2}
           icon="solar:document-text-linear"
           name="版本差异"

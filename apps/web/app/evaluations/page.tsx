@@ -1,4 +1,4 @@
-import { listEvaluationComparisons, listEvaluationRuns, listPrompts, listDatasets } from "@promptguard/core";
+import { listEvaluationRuns, listPrompts, listDatasets } from "@promptguard/core";
 import { formatDate } from "@/lib/utils";
 import { loadEnv } from "@/lib/env";
 import {
@@ -13,9 +13,8 @@ import { NewEvaluationForm } from "./new-form";
 loadEnv();
 
 export default async function EvaluationsPage() {
-  const [runs, comparisons, prompts, datasets] = await Promise.all([
+  const [runs, prompts, datasets] = await Promise.all([
     listEvaluationRuns(),
-    listEvaluationComparisons(),
     listPrompts(),
     listDatasets(),
   ]);
@@ -24,15 +23,15 @@ export default async function EvaluationsPage() {
     <>
       <TemplatePageWrap>
         <TemplateSectionHeader
-          tag="基准测试"
-          title="评测"
-          titleMuted="评测"
+          tag="质量测评"
+          title="测评"
+          titleMuted="任务"
         />
-        <NewEvaluationForm prompts={prompts} datasets={datasets} />
+        <NewEvaluationForm prompts={prompts} datasets={datasets} mode="evaluation" />
       </TemplatePageWrap>
-      <TemplateListSection title="评测任务" description="对比提示词版本在不同模型下的表现。">
+      <TemplateListSection title="测评任务" description="查看提示词版本在数据集上的质量、成本和错误情况。">
         {runs.length === 0 ? (
-          <p className="px-4 py-6 text-center text-white/40">还没有评测</p>
+          <p className="px-4 py-6 text-center text-white/40">还没有测评</p>
         ) : (
           runs.map((r, i) => (
             <div key={r.id} className="grid border-b border-white/10 last:border-b-0 md:grid-cols-[1fr_auto]">
@@ -60,33 +59,6 @@ export default async function EvaluationsPage() {
           ))
         )}
       </TemplateListSection>
-      <TemplateListSection title="版本对比" description="基准版本与候选版本在同一数据集下的差异指标。">
-        {comparisons.length === 0 ? (
-          <p className="px-4 py-6 text-center text-white/40">还没有版本对比</p>
-        ) : (
-          comparisons.map((c, i) => (
-            <TemplateListItem
-              key={c.id}
-              href={`/reports/${c.candidateRunId}`}
-              index={i}
-              icon="solar:chart-square-linear"
-              name={c.id.slice(0, 16) + "..."}
-              sub={c.avgScoreDelta >= 0 ? "improved" : "regressed"}
-              specs={[
-                { label: "均分差", value: signed(c.avgScoreDelta) },
-                { label: "通过率差", value: `${signed(c.passRateDelta * 100)}%` },
-                { label: "延迟差", value: `${signed(c.latencyDeltaMs)}ms` },
-                { label: "退化", value: String(c.regressedCount) },
-              ]}
-              tier={c.avgScoreDelta >= 0 ? "Pass" : "Fail"}
-            />
-          ))
-        )}
-      </TemplateListSection>
     </>
   );
-}
-
-function signed(value: number) {
-  return `${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
 }

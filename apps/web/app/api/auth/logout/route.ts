@@ -9,6 +9,9 @@ export const runtime = "nodejs";
 
 export async function POST() {
   await logout(await getSessionToken());
-  (await cookies()).delete(SESSION_COOKIE);
+  (await cookies()).set(SESSION_COOKIE, "", {
+    path: "/",
+    maxAge: 0,
+  });
   return NextResponse.json({ ok: true });
 }

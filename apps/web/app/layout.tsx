@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { TemplateNav } from "@/components/template/nav";
-import { TemplateScrollReveal } from "@/components/template/scroll-reveal";
+import { AppFrame } from "@/components/app-frame";
 import { TemplateShell } from "@/components/template/shell";
 import { loadEnv } from "@/lib/env";
 import "./globals.css";
@@ -21,11 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="relative w-full overflow-x-hidden bg-[#17181d] text-neutral-50 selection:bg-[#7067ff]/35 selection:text-white">
         <Script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js" strategy="afterInteractive" />
         <TemplateShell />
-        <TemplateNav />
-        <TemplateScrollReveal />
-        <div className="relative z-10 min-h-screen px-3 pb-4 pt-[76px] md:pl-[304px]">
-          {children}
-        </div>
+        <AppFrame>{children}</AppFrame>
       </body>
     </html>
   );

@@ -66,6 +66,7 @@ export function TemplateListItem({
   sub,
   specs,
   tier,
+  action,
 }: {
   href?: string;
   index: number;
@@ -75,6 +76,7 @@ export function TemplateListItem({
   sub?: string;
   specs: Array<{ label: string; value: string; wide?: boolean }>;
   tier?: string;
+  action?: React.ReactNode;
 }) {
   const displaySub = sub ? getStatusLabel(sub) : "";
   const inner = (
@@ -99,15 +101,21 @@ export function TemplateListItem({
       </div>
 
       <div className="col-span-1 flex items-center justify-between gap-3 lg:col-span-2 lg:justify-end">
-        {tier && <StatusPill value={tier} />}
-          <div className="text-sm text-[#8a7dff]">
-          查看
-        </div>
+        {action ? (
+          action
+        ) : (
+          <>
+            {tier && <StatusPill value={tier} />}
+            <div className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 text-white/38 transition group-hover:text-white/70">
+              <Iconify icon="solar:alt-arrow-right-linear" width="16" />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 
-  if (href) return <Link href={href}>{inner}</Link>;
+  if (href) return <Link href={href} className="group block">{inner}</Link>;
   return inner;
 }
 

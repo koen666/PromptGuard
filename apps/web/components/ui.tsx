@@ -61,7 +61,8 @@ export function Input({ className = "", ...props }: React.InputHTMLAttributes<HT
 export function Textarea({ className = "", ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
-      className={`w-full rounded-[18px] border border-white/[0.10] bg-[#15161b]/82 px-3.5 py-2.5 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none placeholder:text-white/34 transition focus:border-[#7067ff]/75 focus:bg-[#1b1c22] focus:ring-2 focus:ring-[#7067ff]/20 ${className}`}
+      wrap="soft"
+      className={`min-w-0 max-w-full resize-y overflow-x-hidden whitespace-pre-wrap break-words w-full rounded-[18px] border border-white/[0.10] bg-[#15161b]/82 px-3.5 py-2.5 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none placeholder:text-white/34 transition focus:border-[#7067ff]/75 focus:bg-[#1b1c22] focus:ring-2 focus:ring-[#7067ff]/20 ${className}`}
       {...props}
     />
   );

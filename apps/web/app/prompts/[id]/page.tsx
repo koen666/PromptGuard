@@ -15,7 +15,6 @@ export default async function PromptDetailPage({ params }: { params: Promise<{ i
   if (!prompt) notFound();
 
   const activeVersion = prompt.versions.find((v) => v.id === prompt.activeVersionId) ?? prompt.versions[0];
-
   return (
     <TemplatePageWrap>
       <TemplateSectionHeader

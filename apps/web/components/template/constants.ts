@@ -21,6 +21,7 @@ export const NAV_LINKS = [
   { href: "/project", label: "项目", icon: "solar:cloud-upload-linear" },
   { href: "/datasets", label: "数据集", icon: "solar:database-linear" },
   { href: "/evaluations", label: "评测", icon: "solar:chart-2-linear" },
+  { href: "/comparisons", label: "对比", icon: "solar:chart-square-linear" },
   { href: "/security", label: "安全", icon: "solar:shield-check-linear" },
   { href: "/reviews", label: "审核", icon: "solar:clipboard-check-linear" },
   { href: "/releases", label: "发布", icon: "solar:rocket-2-linear" },
