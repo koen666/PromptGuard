@@ -18,12 +18,12 @@ export const dynamic = "force-dynamic";
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN" className="scroll-smooth">
-      <body className="relative w-full overflow-x-hidden bg-neutral-950 text-neutral-50 selection:bg-white/20 selection:text-white">
+      <body className="relative w-full overflow-x-hidden bg-[#17181d] text-neutral-50 selection:bg-[#7067ff]/35 selection:text-white">
         <Script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js" strategy="afterInteractive" />
         <TemplateShell />
         <TemplateNav />
         <TemplateScrollReveal />
-        <div className="relative z-10 min-h-screen px-3 pb-3 pt-[72px] md:pl-[92px]">
+        <div className="relative z-10 min-h-screen px-3 pb-4 pt-[76px] md:pl-[304px]">
           {children}
         </div>
       </body>

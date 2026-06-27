@@ -28,7 +28,7 @@ export function AuthStatus() {
 
   if (!user) {
     return (
-      <Link href="/login" className="rounded-md border border-white/10 px-3 py-2 text-xs text-white/70 transition hover:bg-white/5 hover:text-white">
+      <Link href="/login" className="rounded-2xl border border-white/[0.10] bg-white/[0.04] px-3.5 py-2 text-xs font-medium text-white/70 transition hover:bg-white/[0.08] hover:text-white">
         登录
       </Link>
     );
@@ -36,11 +36,11 @@ export function AuthStatus() {
 
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span className="hidden text-white/45 lg:inline">{user.username} · {user.roles.join(",")}</span>
+      <span className="hidden rounded-2xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-white/52 xl:inline">{user.username} · {user.roles.join(",")}</span>
       <button
         type="button"
         onClick={logout}
-        className="rounded-md border border-white/10 px-3 py-2 text-white/70 transition hover:bg-white/5 hover:text-white"
+        className="rounded-2xl border border-white/[0.10] bg-white/[0.04] px-3.5 py-2 text-white/70 transition hover:bg-white/[0.08] hover:text-white"
       >
         退出
       </button>

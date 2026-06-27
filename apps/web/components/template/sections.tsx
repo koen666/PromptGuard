@@ -14,12 +14,15 @@ export function TemplateSectionHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="mb-5 flex flex-col items-start justify-between gap-4 border-b border-white/10 pb-5 md:flex-row md:items-end">
+    <div className="mb-5 flex flex-col items-start justify-between gap-4 rounded-[28px] border border-white/[0.07] bg-[#1d1e24]/76 p-5 shadow-[0_22px_70px_rgba(0,0,0,0.28)] backdrop-blur-2xl md:flex-row md:items-end">
       <div className="max-w-3xl">
-        <div className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#d6c985]">{tag}</div>
+        <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#8a7dff]">
+          <span className="h-2 w-2 rounded-full border border-[#8a7dff] shadow-[0_0_18px_rgba(138,125,255,0.7)]" />
+          {tag}
+        </div>
         <h2 className="text-2xl font-semibold tracking-tight text-white md:text-3xl">
           {title}
-          {titleMuted && <span className="font-normal text-white/40"> {titleMuted}</span>}
+          {titleMuted && <span className="font-normal text-white/32"> {titleMuted}</span>}
         </h2>
       </div>
       {action}
@@ -39,16 +42,16 @@ export function TemplateListSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="relative px-4 pb-7 sm:px-6 lg:px-8">
+    <section className="relative px-0 pb-5">
       <div className="relative z-10 mx-auto w-full max-w-[1480px]">
-        <div className="mb-3 flex items-end justify-between gap-4">
+        <div className="mb-3 flex items-end justify-between gap-4 px-1">
           <div>
             <h3 className="text-lg font-semibold text-white">{title}</h3>
-            {description && <p className="mt-1 text-sm text-white/50">{description}</p>}
+            {description && <p className="mt-1 text-sm text-white/42">{description}</p>}
           </div>
-          {vol && <span className="text-xs text-white/25">{vol}</span>}
+          {vol && <span className="rounded-full bg-[#262832] px-2.5 py-1 text-xs text-white/38">{vol}</span>}
         </div>
-        <div className="overflow-hidden rounded-lg border border-white/10 bg-[#181b1c]/82 shadow-[0_18px_54px_rgba(0,0,0,0.22)]">{children}</div>
+        <div className="overflow-hidden rounded-[26px] border border-white/[0.07] bg-[#1d1e24]/82 shadow-[0_24px_80px_rgba(0,0,0,0.32)] backdrop-blur-2xl">{children}</div>
       </div>
     </section>
   );
@@ -74,29 +77,29 @@ export function TemplateListItem({
   tier?: string;
 }) {
   const inner = (
-    <div className="grid grid-cols-1 items-center gap-3 border-b border-white/8 p-3 transition last:border-b-0 hover:bg-white/[0.035] sm:p-4 lg:grid-cols-12">
+    <div className="grid grid-cols-1 items-center gap-3 border-b border-white/[0.06] p-3 transition last:border-b-0 hover:bg-white/[0.045] sm:p-4 lg:grid-cols-12">
       <div className="col-span-1 flex min-w-0 items-center gap-3 md:col-span-4">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/60">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[15px] border border-white/[0.08] bg-[#262832] text-white/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
           {icon ? <Iconify icon={icon} width="18" /> : <span className="text-xs">{index + 1}</span>}
         </div>
         <div className="min-w-0">
           <h4 className="truncate text-sm font-semibold text-white">{name}</h4>
-          {sub && <p className="mt-1 text-xs text-white/40">{sub}</p>}
+          {sub && <p className="mt-1 text-xs text-white/36">{sub}</p>}
         </div>
       </div>
 
       <div className="col-span-1 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3 lg:col-span-6">
         {specs.map((s) => (
           <div key={s.label} className={cn("min-w-0", s.wide && "sm:col-span-2")}>
-            <div className="text-xs text-white/40">{s.label}</div>
-            <span className="block min-w-0 truncate text-sm text-white/75" title={s.value}>{s.value}</span>
+            <div className="text-xs text-white/32">{s.label}</div>
+            <span className="block min-w-0 truncate text-sm text-white/70" title={s.value}>{s.value}</span>
           </div>
         ))}
       </div>
 
       <div className="col-span-1 flex items-center justify-between gap-3 lg:col-span-2 lg:justify-end">
         {tier && <StatusPill value={tier} />}
-          <div className="text-sm text-[#d6c985]">
+          <div className="text-sm text-[#8a7dff]">
           查看
         </div>
       </div>
@@ -113,13 +116,13 @@ export function TemplateStatsRow({
   items: Array<{ value: React.ReactNode; label: string }>;
 }) {
   return (
-    <section className="border-t border-white/5 bg-neutral-950 px-6 pb-20 pt-20">
+    <section className="border-t border-white/[0.06] bg-[#17181d] px-6 pb-20 pt-20">
       <div className="mx-auto max-w-[1480px]">
         <div className="grid grid-cols-2 gap-x-8 gap-y-8 border-t border-white/5 pt-12 md:grid-cols-4">
           {items.map((item) => (
             <div key={item.label} className="text-center">
               <div className="mb-2 font-bricolage text-4xl font-light text-white md:text-5xl">{item.value}</div>
-              <div className="text-xs uppercase tracking-widest text-white/40">{item.label}</div>
+              <div className="text-xs uppercase tracking-widest text-white/38">{item.label}</div>
             </div>
           ))}
         </div>
@@ -130,7 +133,7 @@ export function TemplateStatsRow({
 
 export function TemplatePageWrap({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative z-10 w-full px-2 py-4 sm:px-4 lg:px-6">
+    <div className="relative z-10 w-full px-0 py-4 sm:px-2 lg:px-5">
       <div className="mx-auto max-w-[1480px]">{children}</div>
     </div>
   );
@@ -139,15 +142,15 @@ export function TemplatePageWrap({ children }: { children: React.ReactNode }) {
 export function StatusPill({ value, className }: { value: string; className?: string }) {
   const normalized = value.toLowerCase();
   const tone = normalized.includes("fail") || normalized.includes("reject") || normalized.includes("risk") || normalized.includes("rolled")
-    ? "border-red-400/25 bg-red-400/10 text-red-200"
+    ? "border-[#ff6b92]/30 bg-[#ff6b92]/12 text-[#ff9fba]"
     : normalized.includes("pending") || normalized.includes("draft") || normalized.includes("running")
-      ? "border-amber-300/25 bg-amber-300/10 text-amber-100"
+      ? "border-[#ffe36e]/28 bg-[#ffe36e]/12 text-[#ffe999]"
       : normalized.includes("active") || normalized.includes("approved") || normalized.includes("completed") || normalized.includes("pass")
-        ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-100"
-        : "border-white/10 bg-white/5 text-white/60";
+        ? "border-[#55e18e]/28 bg-[#55e18e]/12 text-[#8df0b5]"
+        : "border-white/[0.10] bg-white/[0.05] text-white/58";
 
   return (
-    <span className={cn("rounded-full border px-2.5 py-1 text-xs font-medium", tone, className)}>
+    <span className={cn("rounded-full border px-2.5 py-1 text-xs font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]", tone, className)}>
       {value}
     </span>
   );
@@ -161,12 +164,12 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-lg border border-white/10 bg-[#181b1c]/82 p-4 shadow-[0_18px_54px_rgba(0,0,0,0.22)] sm:p-5", className)}>
+    <section className={cn("rounded-[26px] border border-white/[0.07] bg-[#1d1e24]/82 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.32)] backdrop-blur-2xl sm:p-5", className)}>
       {children}
     </section>
   );
 }
 
 export function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.12em] text-white/45">{children}</label>;
+  return <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.12em] text-white/38">{children}</label>;
 }
