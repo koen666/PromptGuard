@@ -395,15 +395,29 @@ function resolveRemoteStatus(
 async function connectRemote(remote: PromptGuardRemoteConfig) {
   const password = process.env[remote.passwordEnv];
   if (!password) throw new Error(`Missing remote database password env: ${remote.passwordEnv}`);
-  return mysql.createConnection({
+  const connection = await mysql.createConnection({
     host: remote.host,
     port: remote.port,
     user: remote.user,
     password,
-    database: remote.database,
     connectTimeout: 10_000,
     multipleStatements: false,
   });
+  await ensureRemoteDatabase(connection, remote.database);
+  return connection;
+}
+
+async function ensureRemoteDatabase(connection: mysql.Connection, database: string) {
+  const databaseName = mysqlIdentifier(database, "database");
+  await connection.execute(`CREATE DATABASE IF NOT EXISTS ${databaseName} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+  await connection.query(`USE ${databaseName}`);
+}
+
+function mysqlIdentifier(value: string, label: string) {
+  if (!/^[A-Za-z0-9_$]+$/.test(value)) {
+    throw new Error(`Invalid MySQL ${label} name: ${value}`);
+  }
+  return `\`${value}\``;
 }
 
 async function ensureRemoteSchema(connection: mysql.Connection) {
