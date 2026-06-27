@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
+import type { FormEvent } from "react";
 import { useState } from "react";
 import { Button, Input } from "@/components/ui";
 import { FieldLabel, Panel } from "@/components/template/sections";
@@ -9,14 +10,15 @@ import { FieldLabel, Panel } from "@/components/template/sections";
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [username, setUsername] = useState("admin");
+  const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"login" | "register">("login");
 
-  async function handleLogin() {
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setLoading(true);
     setError("");
     try {
@@ -48,13 +50,14 @@ export function LoginForm() {
           onClick={() => {
             setMode(mode === "login" ? "register" : "login");
             setError("");
-            setUsername(mode === "login" ? "" : "admin");
+            setUsername("");
+            setPassword("");
           }}
         >
           {mode === "login" ? "注册" : "返回登录"}
         </button>
       </div>
-      <div className="mt-5 space-y-4">
+      <form className="mt-5 space-y-4" onSubmit={handleLogin}>
         {mode === "register" && (
           <div>
             <FieldLabel>显示名称</FieldLabel>
@@ -70,11 +73,11 @@ export function LoginForm() {
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1" />
         </div>
         {error && <p className="text-sm text-red-300">{error}</p>}
-        <Button onClick={handleLogin} disabled={loading || !username || !password} className="w-full">
+        <Button disabled={loading || !username || !password} className="w-full" type="submit">
           {loading ? (mode === "login" ? "登录中..." : "创建中...") : mode === "login" ? "登录" : "创建并登录"}
         </Button>
-      </div>
-      {mode === "login" && <p className="mt-4 text-xs text-white/35">默认管理员：admin / promptguard123</p>}
+      </form>
+      {mode === "register" && <p className="mt-4 text-xs text-white/35">公开注册账号默认为只读角色，管理员可在用户页调整权限。</p>}
     </Panel>
   );
 }

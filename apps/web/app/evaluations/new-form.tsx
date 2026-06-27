@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button, Select } from "@/components/ui";
 import { FieldLabel, Panel } from "@/components/template/sections";
+import { Iconify } from "@/components/template/iconify";
 
 interface PromptItem {
   id: string;
@@ -19,9 +20,11 @@ interface DatasetItem {
 export function NewEvaluationForm({
   prompts,
   datasets,
+  mode = "evaluation",
 }: {
   prompts: PromptItem[];
   datasets: DatasetItem[];
+  mode?: "evaluation" | "comparison";
 }) {
   const router = useRouter();
   const [promptId, setPromptId] = useState(prompts[0]?.id ?? "");
@@ -101,59 +104,94 @@ export function NewEvaluationForm({
     }
   }
 
+  const isComparison = mode === "comparison";
+
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
-      <Panel>
-        <h3 className="text-lg font-semibold text-white">单版本评测</h3>
-        <p className="mt-1 text-sm text-white/45">选择提示词版本和数据集，系统会运行模拟模型并生成报告。</p>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <div>
-            <FieldLabel>提示词</FieldLabel>
-            <PromptSelect prompts={prompts} promptId={promptId} setPromptId={setPromptId} />
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+      {isComparison ? (
+        <Panel className="relative overflow-hidden">
+          <FormGlow />
+          <div className="relative">
+            <FormTitle
+              icon="solar:chart-square-linear"
+              title="新旧版本对比"
+              description="同一数据集下比较基准版本和候选版本的分数、通过率和延迟。"
+            />
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <FieldLabel>提示词</FieldLabel>
+                <PromptSelect prompts={prompts} promptId={comparePromptId} setPromptId={setComparePromptId} />
+              </div>
+              <div>
+                <FieldLabel>基准版本</FieldLabel>
+                <VersionSelect value={baselineVersionNumber} onChange={setBaselineVersionNumber} count={selectedCompareVersionCount} />
+              </div>
+              <div>
+                <FieldLabel>候选版本</FieldLabel>
+                <VersionSelect value={candidateVersionNumber} onChange={setCandidateVersionNumber} count={selectedCompareVersionCount} />
+              </div>
+              <div>
+                <FieldLabel>数据集</FieldLabel>
+                <DatasetSelect datasets={datasets} datasetId={compareDatasetId} setDatasetId={setCompareDatasetId} />
+              </div>
+              <div className="flex items-end">
+                <Button className="w-full sm:w-auto" onClick={handleCompare} disabled={loading || !comparePromptId || !compareDatasetId || baselineVersionNumber === candidateVersionNumber}>
+                  {loadingMode === "compare" ? "对比中..." : "开始对比"}
+                </Button>
+              </div>
+            </div>
           </div>
-          <div>
-            <FieldLabel>版本</FieldLabel>
-            <VersionSelect value={versionNumber} onChange={setVersionNumber} count={selectedVersionCount} />
+        </Panel>
+      ) : (
+        <Panel className="relative overflow-hidden">
+          <FormGlow />
+          <div className="relative">
+            <FormTitle
+              icon="solar:chart-2-linear"
+              title="单版本测评"
+              description="选择提示词版本和数据集，系统会运行模型测评并生成报告。"
+            />
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <div>
+                <FieldLabel>提示词</FieldLabel>
+                <PromptSelect prompts={prompts} promptId={promptId} setPromptId={setPromptId} />
+              </div>
+              <div>
+                <FieldLabel>版本</FieldLabel>
+                <VersionSelect value={versionNumber} onChange={setVersionNumber} count={selectedVersionCount} />
+              </div>
+              <div>
+                <FieldLabel>数据集</FieldLabel>
+                <DatasetSelect datasets={datasets} datasetId={datasetId} setDatasetId={setDatasetId} />
+              </div>
+              <div className="flex items-end">
+                <Button className="w-full sm:w-auto" onClick={handleRun} disabled={loading || !promptId || !datasetId}>
+                  {loadingMode === "run" ? "运行中..." : "开始测评"}
+                </Button>
+              </div>
+            </div>
           </div>
-          <div>
-            <FieldLabel>数据集</FieldLabel>
-            <DatasetSelect datasets={datasets} datasetId={datasetId} setDatasetId={setDatasetId} />
+        </Panel>
+      )}
+
+      <Panel className="flex min-h-[220px] flex-col justify-between">
+        <div>
+          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-[16px] border border-white/[0.08] bg-white/[0.05] text-[#8a7dff]">
+            <Iconify icon={isComparison ? "solar:slider-horizontal-linear" : "solar:checklist-minimalistic-linear"} width="21" />
           </div>
-          <div className="flex items-end">
-            <Button onClick={handleRun} disabled={loading || !promptId || !datasetId}>
-              {loadingMode === "run" ? "运行中..." : "开始评测"}
-            </Button>
-          </div>
+          <h3 className="text-lg font-semibold text-white">{isComparison ? "对比配置" : "测评配置"}</h3>
+          <p className="mt-2 text-sm leading-6 text-white/45">
+            {isComparison
+              ? "建议候选版本选择最新版本，基准版本保留线上稳定版本，便于判断质量收益。"
+              : "每次测评都会生成可追溯报告，可作为后续审核、发布和回归检查依据。"}
+          </p>
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+          <MiniMetric label="Prompt" value={prompts.length} />
+          <MiniMetric label="数据集" value={datasets.length} />
         </div>
       </Panel>
 
-      <Panel>
-        <h3 className="text-lg font-semibold text-white">新旧版本对比</h3>
-        <p className="mt-1 text-sm text-white/45">同一数据集下比较基准版本和候选版本的分数、通过率和延迟。</p>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <div className="md:col-span-2">
-            <FieldLabel>提示词</FieldLabel>
-            <PromptSelect prompts={prompts} promptId={comparePromptId} setPromptId={setComparePromptId} />
-          </div>
-          <div>
-            <FieldLabel>基准版本</FieldLabel>
-            <VersionSelect value={baselineVersionNumber} onChange={setBaselineVersionNumber} count={selectedCompareVersionCount} />
-          </div>
-          <div>
-            <FieldLabel>候选版本</FieldLabel>
-            <VersionSelect value={candidateVersionNumber} onChange={setCandidateVersionNumber} count={selectedCompareVersionCount} />
-          </div>
-          <div>
-            <FieldLabel>数据集</FieldLabel>
-            <DatasetSelect datasets={datasets} datasetId={compareDatasetId} setDatasetId={setCompareDatasetId} />
-          </div>
-          <div className="flex items-end">
-            <Button onClick={handleCompare} disabled={loading || !comparePromptId || !compareDatasetId || baselineVersionNumber === candidateVersionNumber}>
-              {loadingMode === "compare" ? "对比中..." : "开始对比"}
-            </Button>
-          </div>
-        </div>
-      </Panel>
       {(message || error) && (
         <div className="lg:col-span-2">
           <Panel className={error ? "border-red-400/20 bg-red-500/10" : "border-emerald-400/20 bg-emerald-500/10"}>
@@ -161,6 +199,33 @@ export function NewEvaluationForm({
           </Panel>
         </div>
       )}
+    </div>
+  );
+}
+
+function FormGlow() {
+  return <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(112,103,255,0.16),transparent_34%),radial-gradient(circle_at_92%_12%,rgba(85,225,142,0.08),transparent_32%)]" />;
+}
+
+function FormTitle({ icon, title, description }: { icon: string; title: string; description: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[15px] border border-white/[0.08] bg-[#262832] text-white/62">
+        <Iconify icon={icon} width="19" />
+      </div>
+      <div>
+        <h3 className="text-lg font-semibold text-white">{title}</h3>
+        <p className="mt-1 text-sm leading-6 text-white/45">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function MiniMetric({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="rounded-[16px] border border-white/[0.08] bg-white/[0.035] p-3">
+      <div className="text-xs text-white/36">{label}</div>
+      <div className="mt-1 text-lg font-semibold text-white">{value}</div>
     </div>
   );
 }

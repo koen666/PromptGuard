@@ -14,6 +14,7 @@ export default async function SecurityDetailPage({ params }: { params: Promise<{
   if (!scan) notFound();
   const optimization = scan.latestOptimization;
   const review = optimization?.review;
+  const attackStats = buildAttackStats(scan.findings);
 
   return (
     <>
@@ -42,6 +43,24 @@ export default async function SecurityDetailPage({ params }: { params: Promise<{
             <div className="mt-2 text-sm font-semibold text-white">{formatDate(scan.createdAt)}</div>
           </div>
         </div>
+
+        <Panel className="mt-4">
+          <div className="mb-4 flex flex-col gap-1">
+            <h3 className="text-lg font-semibold text-white">拦截攻击统计</h3>
+            <p className="text-sm text-white/45">按攻击类型聚合本次扫描 finding，失败项代表需要拦截或加固。</p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-5">
+            {attackStats.map((item) => (
+              <div key={item.label} className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+                <div className="text-xs text-white/38">{item.label}</div>
+                <div className="mt-2 flex items-end justify-between gap-2">
+                  <span className="text-2xl font-semibold text-white">{item.failed}</span>
+                  <span className="text-xs text-white/38">/ {item.total}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Panel>
 
         <Panel className="mt-4">
           <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
@@ -146,4 +165,22 @@ export default async function SecurityDetailPage({ params }: { params: Promise<{
       </TemplateListSection>
     </>
   );
+}
+
+function buildAttackStats(findings: Array<{ testName: string; passed: boolean }>) {
+  const items = [
+    { label: "Prompt 泄露", patterns: ["Leak", "Extraction", "Prompt Content"] },
+    { label: "角色劫持", patterns: ["Role Hijack", "Jailbreak"] },
+    { label: "指令覆盖", patterns: ["Instruction Override"] },
+    { label: "结构化泄露", patterns: ["Format Smuggling"] },
+    { label: "静态敏感内容", patterns: ["Prompt Content"] },
+  ];
+  return items.map((item) => {
+    const matched = findings.filter((finding) => item.patterns.some((pattern) => finding.testName.includes(pattern)));
+    return {
+      label: item.label,
+      total: matched.length,
+      failed: matched.filter((finding) => !finding.passed).length,
+    };
+  });
 }

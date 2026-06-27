@@ -11,28 +11,32 @@ import { getStatusLabel } from "./sections";
 const SEARCH_ALIASES: Record<string, string[]> = {
   "/": ["overview", "home", "dashboard", "workspace", "总览", "首页"],
   "/prompts": ["prompt", "prompts", "asset", "assets", "library", "资产", "资产库", "提示词"],
-  "/project": ["project", "remote", "push", "pull", "sync", "项目", "远程", "同步"],
+  "/project": ["project", "projects", "workspace", "prompt assets", "项目", "项目管理", "业务项目"],
   "/datasets": ["dataset", "datasets", "data", "case", "cases", "数据", "数据集", "用例"],
-  "/evaluations": ["evaluation", "evaluations", "eval", "score", "test", "评测", "测试"],
+  "/evaluations": ["evaluation", "evaluations", "eval", "score", "test", "评测", "测评", "测试"],
+  "/comparisons": ["comparison", "comparisons", "compare", "regression", "diff", "对比", "版本对比", "回归"],
   "/security": ["security", "scan", "shield", "guard", "安全", "扫描", "防护"],
   "/reviews": ["review", "reviews", "approval", "approve", "审核", "审批"],
   "/releases": ["release", "releases", "gray", "canary", "rollback", "发布", "灰度", "回滚"],
   "/reports": ["report", "reports", "export", "报告", "导出"],
   "/audit": ["audit", "logs", "history", "审计", "日志"],
+  "/users": ["user", "users", "account", "role", "permission", "用户", "账号", "角色", "权限"],
   "/settings": ["setting", "settings", "config", "configuration", "设置", "配置"],
 };
 
 const SEARCH_DESCRIPTIONS: Record<string, string> = {
   "/": "工作台概览",
   "/prompts": "提示词资产库",
-  "/project": "项目 remote 与同步状态",
+  "/project": "业务项目与 Prompt 资产",
   "/datasets": "数据集与测试用例",
-  "/evaluations": "评测任务",
+  "/evaluations": "测评任务",
+  "/comparisons": "版本对比",
   "/security": "安全扫描",
   "/reviews": "审核队列",
   "/releases": "灰度发布",
   "/reports": "已生成报告",
   "/audit": "审计日志",
+  "/users": "账号与角色权限",
   "/settings": "系统设置",
 };
 
@@ -58,14 +62,16 @@ type ExportOption = {
 const EXPORT_OPTIONS: ExportOption[] = [
   { label: "总览摘要", description: "当前工作台指标", endpoint: "/api/dashboard", filePrefix: "dashboard" },
   { label: "提示词资产", description: "提示词列表与版本摘要", endpoint: "/api/prompts", filePrefix: "prompts" },
-  { label: "项目状态", description: "remote 与 prompt 同步状态", endpoint: "/api/project", filePrefix: "project" },
+  { label: "项目资产", description: "业务项目与 Prompt 资产", endpoint: "/api/project", filePrefix: "project" },
   { label: "数据集", description: "数据集目录", endpoint: "/api/datasets", filePrefix: "datasets" },
   { label: "评测任务", description: "评测历史记录", endpoint: "/api/evaluations", filePrefix: "evaluations" },
+  { label: "版本对比", description: "版本对比历史", endpoint: "/api/evaluations/comparisons", filePrefix: "comparisons" },
   { label: "安全扫描", description: "安全扫描记录", endpoint: "/api/security", filePrefix: "security" },
   { label: "审核队列", description: "审核流程记录", endpoint: "/api/reviews", filePrefix: "reviews" },
   { label: "发布状态", description: "灰度发布状态与告警", endpoint: "/api/releases", filePrefix: "releases" },
   { label: "报告索引", description: "报告记录与来源", endpoint: "/api/reports", filePrefix: "reports" },
   { label: "审计日志", description: "近期审计事件", endpoint: "/api/audit", filePrefix: "audit" },
+  { label: "用户账号", description: "账号与角色配置", endpoint: "/api/users", filePrefix: "users" },
   { label: "系统设置", description: "模型提供商与告警配置", endpoint: "/api/settings", filePrefix: "settings" },
 ];
 
@@ -74,12 +80,14 @@ function currentExportOption(pathname: string) {
   if (pathname.startsWith("/project")) return EXPORT_OPTIONS[2];
   if (pathname.startsWith("/datasets")) return EXPORT_OPTIONS[3];
   if (pathname.startsWith("/evaluations")) return EXPORT_OPTIONS[4];
-  if (pathname.startsWith("/security")) return EXPORT_OPTIONS[5];
-  if (pathname.startsWith("/reviews")) return EXPORT_OPTIONS[6];
-  if (pathname.startsWith("/releases")) return EXPORT_OPTIONS[7];
-  if (pathname.startsWith("/reports")) return EXPORT_OPTIONS[8];
-  if (pathname.startsWith("/audit")) return EXPORT_OPTIONS[9];
-  if (pathname.startsWith("/settings")) return EXPORT_OPTIONS[10];
+  if (pathname.startsWith("/comparisons")) return EXPORT_OPTIONS[5];
+  if (pathname.startsWith("/security")) return EXPORT_OPTIONS[6];
+  if (pathname.startsWith("/reviews")) return EXPORT_OPTIONS[7];
+  if (pathname.startsWith("/releases")) return EXPORT_OPTIONS[8];
+  if (pathname.startsWith("/reports")) return EXPORT_OPTIONS[9];
+  if (pathname.startsWith("/audit")) return EXPORT_OPTIONS[10];
+  if (pathname.startsWith("/users")) return EXPORT_OPTIONS[11];
+  if (pathname.startsWith("/settings")) return EXPORT_OPTIONS[12];
   return EXPORT_OPTIONS[0];
 }
 
@@ -600,11 +608,11 @@ export function TemplateNav() {
   const pathname = usePathname();
   const activeLink = NAV_LINKS.find((link) => pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href))) ?? NAV_LINKS[0];
   const isActiveHref = (href: string) => pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
-  const secondaryLinks = NAV_LINKS.slice(6);
-  const primaryLinks = NAV_LINKS.slice(0, 6);
+  const secondaryLinks = NAV_LINKS.slice(7);
+  const primaryLinks = NAV_LINKS.slice(0, 7);
   const quickLinks = [
     { href: "/prompts", icon: "solar:document-text-linear", label: "Prompt 资产" },
-    { href: "/evaluations", icon: "solar:chart-square-linear", label: "评测统计" },
+    { href: "/comparisons", icon: "solar:chart-square-linear", label: "版本对比" },
     { href: "/reviews", icon: "solar:bookmark-linear", label: "审核收藏" },
   ];
 
@@ -645,7 +653,7 @@ export function TemplateNav() {
       <aside className="fixed bottom-3 left-3 top-3 z-40 hidden w-[276px] overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#202127]/78 shadow-[0_30px_90px_rgba(0,0,0,0.36)] backdrop-blur-2xl md:block">
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.014))]" />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_28%_2%,rgba(112,103,255,0.16),transparent_34%)]" />
-        <div className="relative flex h-full flex-col p-4">
+        <div className="relative flex h-full min-h-0 flex-col p-4">
           <div className="mb-5 flex items-center gap-3">
             <div className="flex h-12 w-12 shrink-0 aspect-square items-center justify-center overflow-hidden rounded-xl bg-[linear-gradient(135deg,#67e8f9,#7067ff)] text-lg font-bold text-white shadow-[0_16px_34px_rgba(112,103,255,0.34)]">
               PG
@@ -661,75 +669,79 @@ export function TemplateNav() {
 
           <NavSearch variant="side" placeholder="搜索页面" />
 
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/28">总览</div>
-          <nav className="space-y-1.5">
-            {primaryLinks.map((link, index) => {
-              const active = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
-              return (
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2 pr-1 [-webkit-overflow-scrolling:touch]">
+            <div className="flex min-h-full flex-col">
+              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/28">总览</div>
+              <nav className="space-y-1.5">
+                {primaryLinks.map((link, index) => {
+                  const active = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      title={link.label}
+                      aria-label={link.label}
+                      className={
+                        active
+                          ? "flex h-11 items-center gap-3 rounded-[16px] bg-[#7067ff] px-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(112,103,255,0.38)]"
+                          : "flex h-11 items-center gap-3 rounded-[16px] px-3 text-sm font-medium text-white/58 transition hover:bg-white/[0.05] hover:text-white"
+                      }
+                    >
+                      <Iconify icon={link.icon} width="19" />
+                      <span className="min-w-0 flex-1 truncate">{link.label}</span>
+                      {active ? <Iconify icon="solar:alt-arrow-up-linear" width="15" /> : index === 1 ? <span className="h-2 w-2 rounded-full bg-[#ff765f]" /> : null}
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              <div className="mt-6 space-y-1.5">
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/28">工作区</div>
+                {secondaryLinks.map((link, index) => {
+                  const active = pathname === link.href || pathname.startsWith(link.href);
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={
+                        active
+                          ? "flex h-10 items-center gap-3 rounded-[15px] bg-white/[0.08] px-3 text-sm font-medium text-white"
+                          : "flex h-10 items-center gap-3 rounded-[15px] px-3 text-sm font-medium text-white/48 transition hover:bg-white/[0.05] hover:text-white"
+                      }
+                    >
+                      <Iconify icon={link.icon} width="18" />
+                      <span className="min-w-0 flex-1 truncate">{link.label}</span>
+                      {index === 0 && <span className="rounded-full bg-[#262832] px-2 py-0.5 text-[11px] text-[#ffe36e]">4</span>}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              <div className="mt-auto space-y-3 pt-6">
+                <SidebarUtilities />
                 <Link
-                  key={link.href}
-                  href={link.href}
-                  title={link.label}
-                  aria-label={link.label}
+                  href="/prompts"
+                  aria-current={isActiveHref("/prompts") ? "page" : undefined}
+                  aria-label="新增 Prompt"
+                  title="新增 Prompt"
                   className={
-                    active
-                      ? "flex h-11 items-center gap-3 rounded-[16px] bg-[#7067ff] px-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(112,103,255,0.38)]"
-                      : "flex h-11 items-center gap-3 rounded-[16px] px-3 text-sm font-medium text-white/58 transition hover:bg-white/[0.05] hover:text-white"
+                    isActiveHref("/prompts")
+                      ? "flex h-[120px] flex-col items-center justify-center rounded-[24px] border border-dashed border-[#7067ff]/60 bg-[#1c1d26] text-center shadow-[0_16px_34px_rgba(112,103,255,0.16)] transition hover:border-[#8276ff]/70"
+                      : "flex h-[120px] flex-col items-center justify-center rounded-[24px] border border-dashed border-white/18 bg-[#15161b]/72 text-center transition hover:border-[#7067ff]/55 hover:bg-[#1c1d26]"
                   }
                 >
-                  <Iconify icon={link.icon} width="19" />
-                  <span className="min-w-0 flex-1 truncate">{link.label}</span>
-                  {active ? <Iconify icon="solar:alt-arrow-up-linear" width="15" /> : index === 1 ? <span className="h-2 w-2 rounded-full bg-[#ff765f]" /> : null}
+                  <span className={
+                    isActiveHref("/prompts")
+                      ? "mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#8276ff] text-white shadow-[0_12px_26px_rgba(112,103,255,0.50)]"
+                      : "mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#7067ff] text-white shadow-[0_12px_26px_rgba(112,103,255,0.42)]"
+                  }>
+                    <Iconify icon="solar:add-circle-linear" width="21" />
+                  </span>
+                  <span className="text-sm font-medium text-white">新建提示词</span>
+                  <span className="mt-1 text-xs text-white/36">也可进入导入入口</span>
                 </Link>
-              );
-            })}
-          </nav>
-
-          <div className="mt-6 space-y-1.5">
-            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/28">工作区</div>
-            {secondaryLinks.map((link, index) => {
-              const active = pathname === link.href || pathname.startsWith(link.href);
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={
-                    active
-                      ? "flex h-10 items-center gap-3 rounded-[15px] bg-white/[0.08] px-3 text-sm font-medium text-white"
-                      : "flex h-10 items-center gap-3 rounded-[15px] px-3 text-sm font-medium text-white/48 transition hover:bg-white/[0.05] hover:text-white"
-                  }
-                >
-                  <Iconify icon={link.icon} width="18" />
-                  <span className="min-w-0 flex-1 truncate">{link.label}</span>
-                  {index === 0 && <span className="rounded-full bg-[#262832] px-2 py-0.5 text-[11px] text-[#ffe36e]">4</span>}
-                </Link>
-              );
-            })}
-          </div>
-
-          <div className="mt-auto space-y-3">
-            <SidebarUtilities />
-            <Link
-              href="/prompts"
-              aria-current={isActiveHref("/prompts") ? "page" : undefined}
-              aria-label="新增 Prompt"
-              title="新增 Prompt"
-              className={
-                isActiveHref("/prompts")
-                  ? "flex h-[120px] flex-col items-center justify-center rounded-[24px] border border-dashed border-[#7067ff]/60 bg-[#1c1d26] text-center shadow-[0_16px_34px_rgba(112,103,255,0.16)] transition hover:border-[#8276ff]/70"
-                  : "flex h-[120px] flex-col items-center justify-center rounded-[24px] border border-dashed border-white/18 bg-[#15161b]/72 text-center transition hover:border-[#7067ff]/55 hover:bg-[#1c1d26]"
-              }
-            >
-              <span className={
-                isActiveHref("/prompts")
-                  ? "mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#8276ff] text-white shadow-[0_12px_26px_rgba(112,103,255,0.50)]"
-                  : "mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#7067ff] text-white shadow-[0_12px_26px_rgba(112,103,255,0.42)]"
-              }>
-                <Iconify icon="solar:add-circle-linear" width="21" />
-              </span>
-              <span className="text-sm font-medium text-white">新建提示词</span>
-              <span className="mt-1 text-xs text-white/36">也可进入导入入口</span>
-            </Link>
+              </div>
+            </div>
           </div>
         </div>
       </aside>

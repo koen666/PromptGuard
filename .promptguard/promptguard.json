@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "databaseUrl": "mysql://env/PROMPTGUARD_DB",
+  "promptsDir": ".promptguard/prompts",
+  "datasetsDir": ".promptguard/datasets",
+  "defaultEnvironment": "production",
+  "project": {
+    "id": "pg_promptguard_workspace_demo",
+    "name": "PromptGuard 示例项目集",
+    "description": "包含售后对话、订单风控和知识库问答三个业务项目，用于演示项目级 Prompt 资产扫描。",
+    "defaultBranch": "main"
+  },
+  "trackedPrompts": [
+    {
+      "name": "pre-售后对话助手"
+    },
+    {
+      "name": "pre-订单风控审核员"
+    },
+    {
+      "name": "pre-知识库问答助手"
+    }
+  ]
+}

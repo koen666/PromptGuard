@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 type CurrentUser = {
@@ -11,19 +11,47 @@ type CurrentUser = {
 
 export function AuthStatus() {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<CurrentUser | null>(null);
+  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/me")
+    let cancelled = false;
+
+    fetch("/api/auth/me", { cache: "no-store" })
       .then((res) => res.json())
-      .then((body) => setUser(body.user ?? null))
-      .catch(() => setUser(null));
-  }, []);
+      .then((body) => {
+        if (cancelled) return;
+        const nextUser = body.user ?? null;
+        setUser(nextUser);
+        setChecked(true);
+        if (!nextUser && pathname !== "/login") {
+          window.location.replace(`/login?next=${encodeURIComponent(pathname)}`);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setUser(null);
+        setChecked(true);
+        if (pathname !== "/login") {
+          window.location.replace(`/login?next=${encodeURIComponent(pathname)}`);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     setUser(null);
+    router.replace("/login");
     router.refresh();
+  }
+
+  if (!checked || pathname === "/login") {
+    return null;
   }
 
   if (!user) {
