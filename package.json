@@ -2,10 +2,16 @@
   "name": "promptguard",
   "private": true,
   "version": "0.1.0",
+  "bin": {
+    "pmg": "./bin/pmg.mjs",
+    "promptguard": "./bin/pmg.mjs"
+  },
   "scripts": {
     "setup": "pnpm install && pnpm db:migrate",
     "dev": "pnpm --filter @promptguard/core build && pnpm --filter @promptguard/web dev",
     "build": "pnpm --filter @promptguard/core build && pnpm -r build",
+    "build:pmg": "pnpm --filter @promptguard/core build && pnpm --filter @promptguard/cli build",
+    "install:pmg": "pnpm build:pmg && npm link",
     "start": "pnpm --filter @promptguard/web start",
     "db:migrate": "pnpm --filter @promptguard/core db:migrate",
     "db:generate": "pnpm --filter @promptguard/core db:generate",

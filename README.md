@@ -271,8 +271,18 @@ PowerShell 在项目根目录执行：
 | `pnpm db:migrate` | 应用迁移到 SQLite |
 | `pnpm seed` | 重置并写入演示数据 |
 | `pnpm pmg -- <子命令>` | 开发态调用 PromptGuard CLI |
+| `pnpm install:pmg` | 将 `pmg` 安装/链接为本机命令 |
 
-CLI 包构建 / 安装后会暴露两个命令：`pmg`（推荐短命令）和 `promptguard`（完整命名）。在 monorepo 开发态使用 `pnpm pmg -- ...`；作为全局或 npm bin 安装后，可直接使用 `pmg ...`。
+CLI 包构建 / 安装后会暴露两个命令：`pmg`（推荐短命令）和 `promptguard`（完整命名）。在 monorepo 开发态可使用 `pnpm pmg -- ...`；执行下面命令后，就可以像 `git`、`brew` 一样直接使用 `pmg ...`：
+
+```powershell
+pnpm install
+pnpm install:pmg
+pmg --help
+pmg prompt list
+```
+
+`pnpm install:pmg` 底层使用 `npm link`，适合本机演示和开发。真正发布到公共包管理器时，可以进一步做成 `npm install -g @promptguard/cli` 或 Homebrew tap。
 
 **Web 路由一览**
 
@@ -345,15 +355,15 @@ ANTHROPIC_MODEL=claude-3-5-haiku-20241022
 CLI 等价示例：
 
 ```powershell
-pnpm pmg -- init
-pnpm pmg -- project init --sample
-pnpm pmg -- prompt list
-pnpm pmg -- prompt import --file .promptguard/prompts/customer-service.md --tags customer-service,production
-pnpm pmg -- prompt run customer-service --input "我的订单什么时候到？"
-pnpm pmg -- security scan --prompt <promptId> --version 1
-pnpm pmg -- security optimize --scan <scanId> --apply
-pnpm pmg -- eval run --prompt <promptId> --version 1 --dataset <datasetId>
-pnpm pmg -- report generate --run <runId> --format html
+pmg init
+pmg project init --sample
+pmg prompt list
+pmg prompt import --file .promptguard/prompts/customer-service.md --tags customer-service,production
+pmg prompt run customer-service --input "我的订单什么时候到？"
+pmg security scan --prompt <promptId> --version 1
+pmg security optimize --scan <scanId> --apply
+pmg eval run --prompt <promptId> --version 1 --dataset <datasetId>
+pmg report generate --run <runId> --format html
 ```
 
 ---
@@ -361,21 +371,21 @@ pnpm pmg -- report generate --run <runId> --format html
 ## CLI 常用命令
 
 ```powershell
-pnpm pmg -- init                          # 初始化数据库（通常用 db:migrate 即可）
-pnpm pmg -- project init --sample          # 初始化 .promptguard 项目目录
-pnpm pmg -- prompt list
-pnpm pmg -- prompt create --name "..." --content "..."
-pnpm pmg -- prompt create --name "..." --file .promptguard/prompts/foo.md
-pnpm pmg -- prompt import --file .promptguard/prompts/foo.md --tags prod,agent
-pnpm pmg -- prompt export <id> --file .promptguard/prompts/foo.md
-pnpm pmg -- prompt save <id> --file .promptguard/prompts/foo.md --changelog "tighten policy"
-pnpm pmg -- prompt run <id-or-name> --input "hello"
-pnpm pmg -- dataset list
-pnpm pmg -- eval run --prompt <id> --version 1 --dataset <id>
-pnpm pmg -- security scan --prompt <id> --version 1
-pnpm pmg -- review submit --prompt <id> --version 1
-pnpm pmg -- release start --prompt <id> --prompt-version 1 --percent 10 --note "canary"
-pnpm pmg -- report generate --run <id> --format html
+pmg init                          # 初始化数据库（通常用 db:migrate 即可）
+pmg project init --sample          # 初始化 .promptguard 项目目录
+pmg prompt list
+pmg prompt create --name "..." --content "..."
+pmg prompt create --name "..." --file .promptguard/prompts/foo.md
+pmg prompt import --file .promptguard/prompts/foo.md --tags prod,agent
+pmg prompt export <id> --file .promptguard/prompts/foo.md
+pmg prompt save <id> --file .promptguard/prompts/foo.md --changelog "tighten policy"
+pmg prompt run <id-or-name> --input "hello"
+pmg dataset list
+pmg eval run --prompt <id> --version 1 --dataset <id>
+pmg security scan --prompt <id> --version 1
+pmg review submit --prompt <id> --version 1
+pmg release start --prompt <id> --prompt-version 1 --percent 10 --note "canary"
+pmg report generate --run <id> --format html
 ```
 
 加 `--help` 查看各子命令参数。
