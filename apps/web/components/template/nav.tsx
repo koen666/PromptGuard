@@ -19,6 +19,7 @@ const SEARCH_ALIASES: Record<string, string[]> = {
   "/releases": ["release", "releases", "gray", "canary", "rollback", "发布", "灰度", "回滚"],
   "/reports": ["report", "reports", "export", "报告", "导出"],
   "/audit": ["audit", "logs", "history", "审计", "日志"],
+  "/users": ["user", "users", "account", "role", "permission", "用户", "账号", "角色", "权限"],
   "/settings": ["setting", "settings", "config", "configuration", "设置", "配置"],
 };
 
@@ -33,6 +34,7 @@ const SEARCH_DESCRIPTIONS: Record<string, string> = {
   "/releases": "灰度发布",
   "/reports": "已生成报告",
   "/audit": "审计日志",
+  "/users": "账号与角色权限",
   "/settings": "系统设置",
 };
 
@@ -66,6 +68,7 @@ const EXPORT_OPTIONS: ExportOption[] = [
   { label: "发布状态", description: "灰度发布状态与告警", endpoint: "/api/releases", filePrefix: "releases" },
   { label: "报告索引", description: "报告记录与来源", endpoint: "/api/reports", filePrefix: "reports" },
   { label: "审计日志", description: "近期审计事件", endpoint: "/api/audit", filePrefix: "audit" },
+  { label: "用户账号", description: "账号与角色配置", endpoint: "/api/users", filePrefix: "users" },
   { label: "系统设置", description: "模型提供商与告警配置", endpoint: "/api/settings", filePrefix: "settings" },
 ];
 
@@ -79,7 +82,8 @@ function currentExportOption(pathname: string) {
   if (pathname.startsWith("/releases")) return EXPORT_OPTIONS[7];
   if (pathname.startsWith("/reports")) return EXPORT_OPTIONS[8];
   if (pathname.startsWith("/audit")) return EXPORT_OPTIONS[9];
-  if (pathname.startsWith("/settings")) return EXPORT_OPTIONS[10];
+  if (pathname.startsWith("/users")) return EXPORT_OPTIONS[10];
+  if (pathname.startsWith("/settings")) return EXPORT_OPTIONS[11];
   return EXPORT_OPTIONS[0];
 }
 
