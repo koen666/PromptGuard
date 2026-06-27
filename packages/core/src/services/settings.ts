@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { getDatabasePath, getLlmConfig, type LlmProvider } from "../config.js";
+import { getDatabasePath, getLlmConfig, type LlmProvider, type OpenAiWireApi } from "../config.js";
 import { resetLlmAdapter } from "../adapters/llm/index.js";
 import { alertRules, modelConfig, systemConfig } from "../db/schema.js";
 import { getDb } from "../db/client.js";
@@ -12,16 +12,38 @@ export async function getSystemSettings() {
   const rows = await db.select().from(systemConfig);
   const values = Object.fromEntries(rows.map((row) => [row.key, row.value]));
   const envConfig = getLlmConfig();
+  const envOverrides = {
+    provider: !!process.env.LLM_PROVIDER,
+    openaiBaseUrl: !!process.env.OPENAI_BASE_URL,
+    openaiWireApi: !!process.env.OPENAI_WIRE_API,
+    openaiModel: !!(process.env.OPENAI_MODEL || process.env.MODEL),
+    openaiReviewModel: !!(process.env.OPENAI_REVIEW_MODEL || process.env.REVIEW_MODEL),
+    openaiReasoningEffort: !!(process.env.OPENAI_REASONING_EFFORT || process.env.MODEL_REASONING_EFFORT),
+    openaiDisableResponseStorage: !!(process.env.OPENAI_DISABLE_RESPONSE_STORAGE || process.env.DISABLE_RESPONSE_STORAGE),
+    anthropicModel: !!process.env.ANTHROPIC_MODEL,
+    ollamaModel: !!process.env.OLLAMA_MODEL,
+    ollamaBaseUrl: !!process.env.OLLAMA_BASE_URL,
+  };
   const models = await db.select().from(modelConfig);
   const alerts = await db.select().from(alertRules);
+  const storedOpenAiWireApi = values.openaiWireApi === "chat_completions" ? "chat_completions" : "responses";
 
   return {
-    provider: (values.llmProvider as LlmProvider) ?? envConfig.provider,
+    provider: envOverrides.provider ? envConfig.provider : ((values.llmProvider as LlmProvider) ?? envConfig.provider),
     databasePath: getDatabasePath(),
-    openaiModel: values.openaiModel ?? envConfig.openaiModel,
-    anthropicModel: values.anthropicModel ?? envConfig.anthropicModel,
-    ollamaModel: values.ollamaModel ?? envConfig.ollamaModel,
-    ollamaBaseUrl: values.ollamaBaseUrl ?? envConfig.ollamaBaseUrl,
+    openaiBaseUrl: envOverrides.openaiBaseUrl ? envConfig.openaiBaseUrl : (values.openaiBaseUrl ?? envConfig.openaiBaseUrl),
+    openaiWireApi: (envOverrides.openaiWireApi ? envConfig.openaiWireApi : storedOpenAiWireApi) as OpenAiWireApi,
+    openaiModel: envOverrides.openaiModel ? envConfig.openaiModel : (values.openaiModel ?? envConfig.openaiModel),
+    openaiReviewModel: envOverrides.openaiReviewModel ? envConfig.openaiReviewModel : (values.openaiReviewModel ?? envConfig.openaiReviewModel),
+    openaiReasoningEffort: envOverrides.openaiReasoningEffort
+      ? (envConfig.openaiReasoningEffort ?? "")
+      : (values.openaiReasoningEffort ?? envConfig.openaiReasoningEffort ?? ""),
+    openaiDisableResponseStorage: envOverrides.openaiDisableResponseStorage
+      ? envConfig.openaiDisableResponseStorage
+      : (values.openaiDisableResponseStorage ?? String(envConfig.openaiDisableResponseStorage)) === "true",
+    anthropicModel: envOverrides.anthropicModel ? envConfig.anthropicModel : (values.anthropicModel ?? envConfig.anthropicModel),
+    ollamaModel: envOverrides.ollamaModel ? envConfig.ollamaModel : (values.ollamaModel ?? envConfig.ollamaModel),
+    ollamaBaseUrl: envOverrides.ollamaBaseUrl ? envConfig.ollamaBaseUrl : (values.ollamaBaseUrl ?? envConfig.ollamaBaseUrl),
     hasOpenAiKey: !!(values.openaiApiKey || envConfig.openaiApiKey),
     hasAnthropicKey: !!(values.anthropicApiKey || envConfig.anthropicApiKey),
     models,
@@ -31,7 +53,12 @@ export async function getSystemSettings() {
 
 export async function updateSystemSettings(input: {
   provider?: LlmProvider;
+  openaiBaseUrl?: string;
+  openaiWireApi?: "responses" | "chat_completions";
   openaiModel?: string;
+  openaiReviewModel?: string;
+  openaiReasoningEffort?: string;
+  openaiDisableResponseStorage?: boolean;
   anthropicModel?: string;
   ollamaModel?: string;
   ollamaBaseUrl?: string;
@@ -46,7 +73,18 @@ export async function updateSystemSettings(input: {
   await ensureDefaultSettings();
   const db = getDb();
   if (input.provider) await upsertConfig("llmProvider", input.provider);
+  if (input.openaiBaseUrl?.trim()) await upsertConfig("openaiBaseUrl", input.openaiBaseUrl.trim());
+  if (input.openaiWireApi && ["responses", "chat_completions"].includes(input.openaiWireApi)) {
+    await upsertConfig("openaiWireApi", input.openaiWireApi);
+  }
   if (input.openaiModel?.trim()) await upsertConfig("openaiModel", input.openaiModel.trim());
+  if (input.openaiReviewModel?.trim()) await upsertConfig("openaiReviewModel", input.openaiReviewModel.trim());
+  if (typeof input.openaiReasoningEffort === "string") {
+    await upsertConfig("openaiReasoningEffort", input.openaiReasoningEffort.trim());
+  }
+  if (typeof input.openaiDisableResponseStorage === "boolean") {
+    await upsertConfig("openaiDisableResponseStorage", String(input.openaiDisableResponseStorage));
+  }
   if (input.anthropicModel?.trim()) await upsertConfig("anthropicModel", input.anthropicModel.trim());
   if (input.ollamaModel?.trim()) await upsertConfig("ollamaModel", input.ollamaModel.trim());
   if (input.ollamaBaseUrl?.trim()) await upsertConfig("ollamaBaseUrl", input.ollamaBaseUrl.trim());
@@ -58,7 +96,14 @@ export async function updateSystemSettings(input: {
   }
 
   if (input.provider) process.env.LLM_PROVIDER = input.provider;
+  if (input.openaiBaseUrl?.trim()) process.env.OPENAI_BASE_URL = input.openaiBaseUrl.trim();
+  if (input.openaiWireApi) process.env.OPENAI_WIRE_API = input.openaiWireApi;
   if (input.openaiModel?.trim()) process.env.OPENAI_MODEL = input.openaiModel.trim();
+  if (input.openaiReviewModel?.trim()) process.env.OPENAI_REVIEW_MODEL = input.openaiReviewModel.trim();
+  if (typeof input.openaiReasoningEffort === "string") process.env.OPENAI_REASONING_EFFORT = input.openaiReasoningEffort.trim();
+  if (typeof input.openaiDisableResponseStorage === "boolean") {
+    process.env.OPENAI_DISABLE_RESPONSE_STORAGE = String(input.openaiDisableResponseStorage);
+  }
   if (input.anthropicModel?.trim()) process.env.ANTHROPIC_MODEL = input.anthropicModel.trim();
   if (input.ollamaModel?.trim()) process.env.OLLAMA_MODEL = input.ollamaModel.trim();
   if (input.ollamaBaseUrl?.trim()) process.env.OLLAMA_BASE_URL = input.ollamaBaseUrl.trim();
@@ -102,15 +147,25 @@ export async function updateSystemSettings(input: {
 
 async function ensureDefaultSettings() {
   const config = getLlmConfig();
-  await upsertConfig("llmProvider", config.provider, false);
-  await upsertConfig("openaiModel", config.openaiModel, false);
-  await upsertConfig("anthropicModel", config.anthropicModel, false);
-  await upsertConfig("ollamaModel", config.ollamaModel, false);
-  await upsertConfig("ollamaBaseUrl", config.ollamaBaseUrl, false);
-  await upsertModel("mock", "mock-gpt", config.provider === "mock", false);
-  await upsertModel("openai", config.openaiModel, config.provider === "openai", false);
-  await upsertModel("anthropic", config.anthropicModel, config.provider === "anthropic", false);
-  await upsertModel("ollama", config.ollamaModel, config.provider === "ollama", false);
+  const envProvider = !!process.env.LLM_PROVIDER;
+  const envOpenAi = !!(process.env.OPENAI_BASE_URL || process.env.OPENAI_WIRE_API || process.env.OPENAI_MODEL || process.env.MODEL);
+  const envAnthropic = !!process.env.ANTHROPIC_MODEL;
+  const envOllama = !!(process.env.OLLAMA_MODEL || process.env.OLLAMA_BASE_URL);
+
+  await upsertConfig("llmProvider", config.provider, envProvider);
+  await upsertConfig("openaiBaseUrl", config.openaiBaseUrl, envOpenAi);
+  await upsertConfig("openaiWireApi", config.openaiWireApi, envOpenAi);
+  await upsertConfig("openaiModel", config.openaiModel, envOpenAi);
+  await upsertConfig("openaiReviewModel", config.openaiReviewModel, envOpenAi);
+  await upsertConfig("openaiReasoningEffort", config.openaiReasoningEffort ?? "", envOpenAi);
+  await upsertConfig("openaiDisableResponseStorage", String(config.openaiDisableResponseStorage), envOpenAi);
+  await upsertConfig("anthropicModel", config.anthropicModel, envAnthropic);
+  await upsertConfig("ollamaModel", config.ollamaModel, envOllama);
+  await upsertConfig("ollamaBaseUrl", config.ollamaBaseUrl, envOllama);
+  await upsertModel("mock", "mock-gpt", config.provider === "mock", envProvider);
+  await upsertModel("openai", config.openaiModel, config.provider === "openai", envOpenAi || envProvider);
+  await upsertModel("anthropic", config.anthropicModel, config.provider === "anthropic", envAnthropic || envProvider);
+  await upsertModel("ollama", config.ollamaModel, config.provider === "ollama", envOllama || envProvider);
   const db = getDb();
   const existingAlerts = await db.select().from(alertRules);
   if (!existingAlerts.length) {

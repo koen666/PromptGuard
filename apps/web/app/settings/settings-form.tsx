@@ -5,6 +5,7 @@ import { Button, Input, Select } from "@/components/ui";
 import { FieldLabel, Panel } from "@/components/template/sections";
 
 type Provider = "mock" | "openai" | "anthropic" | "ollama";
+type OpenAiWireApi = "responses" | "chat_completions";
 type AlertOperator = ">" | ">=" | "<" | "<=";
 type AlertSeverity = "low" | "medium" | "high";
 
@@ -19,7 +20,12 @@ interface AlertRuleForm {
 interface SettingsState {
   provider: Provider;
   databasePath: string;
+  openaiBaseUrl: string;
+  openaiWireApi: OpenAiWireApi;
   openaiModel: string;
+  openaiReviewModel: string;
+  openaiReasoningEffort: string;
+  openaiDisableResponseStorage: boolean;
   anthropicModel: string;
   ollamaModel: string;
   ollamaBaseUrl: string;
@@ -30,7 +36,12 @@ interface SettingsState {
 
 export function SettingsForm({ initialSettings }: { initialSettings: SettingsState }) {
   const [provider, setProvider] = useState<Provider>(initialSettings.provider);
+  const [openaiBaseUrl, setOpenaiBaseUrl] = useState(initialSettings.openaiBaseUrl);
+  const [openaiWireApi, setOpenaiWireApi] = useState<OpenAiWireApi>(initialSettings.openaiWireApi);
   const [openaiModel, setOpenaiModel] = useState(initialSettings.openaiModel);
+  const [openaiReviewModel, setOpenaiReviewModel] = useState(initialSettings.openaiReviewModel);
+  const [openaiReasoningEffort, setOpenaiReasoningEffort] = useState(initialSettings.openaiReasoningEffort);
+  const [openaiDisableResponseStorage, setOpenaiDisableResponseStorage] = useState(initialSettings.openaiDisableResponseStorage);
   const [anthropicModel, setAnthropicModel] = useState(initialSettings.anthropicModel);
   const [ollamaModel, setOllamaModel] = useState(initialSettings.ollamaModel);
   const [ollamaBaseUrl, setOllamaBaseUrl] = useState(initialSettings.ollamaBaseUrl);
@@ -69,7 +80,12 @@ export function SettingsForm({ initialSettings }: { initialSettings: SettingsSta
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           provider,
+          openaiBaseUrl,
+          openaiWireApi,
           openaiModel,
+          openaiReviewModel,
+          openaiReasoningEffort,
+          openaiDisableResponseStorage,
           anthropicModel,
           ollamaModel,
           ollamaBaseUrl,
@@ -116,10 +132,38 @@ export function SettingsForm({ initialSettings }: { initialSettings: SettingsSta
             <Input value={ollamaBaseUrl} onChange={(e) => setOllamaBaseUrl(e.target.value)} placeholder="http://127.0.0.1:11434" />
           </div>
           <div>
+            <FieldLabel>OpenAI Base URL</FieldLabel>
+            <Input value={openaiBaseUrl} onChange={(e) => setOpenaiBaseUrl(e.target.value)} placeholder="https://api.openai.com" />
+          </div>
+          <div>
+            <FieldLabel>OpenAI Wire API</FieldLabel>
+            <Select value={openaiWireApi} onChange={(e) => setOpenaiWireApi(e.target.value as OpenAiWireApi)}>
+              <option value="responses">responses</option>
+              <option value="chat_completions">chat_completions</option>
+            </Select>
+          </div>
+          <div>
             <FieldLabel>OpenAI 模型</FieldLabel>
-            <Input value={openaiModel} onChange={(e) => setOpenaiModel(e.target.value)} placeholder="gpt-4o-mini" />
+            <Input value={openaiModel} onChange={(e) => setOpenaiModel(e.target.value)} placeholder="gpt-5.5" />
             <p className="mt-1 text-xs text-white/40">OpenAI Key：{hasOpenAiKey ? "已配置" : "未配置"}</p>
           </div>
+          <div>
+            <FieldLabel>OpenAI Review 模型</FieldLabel>
+            <Input value={openaiReviewModel} onChange={(e) => setOpenaiReviewModel(e.target.value)} placeholder="gpt-5.5" />
+          </div>
+          <div>
+            <FieldLabel>Reasoning Effort</FieldLabel>
+            <Input value={openaiReasoningEffort} onChange={(e) => setOpenaiReasoningEffort(e.target.value)} placeholder="xhigh" />
+          </div>
+          <label className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3 text-sm text-white/70">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-[#d6c985]"
+              checked={openaiDisableResponseStorage}
+              onChange={(e) => setOpenaiDisableResponseStorage(e.target.checked)}
+            />
+            禁用 Responses 存储 store=false
+          </label>
           <div>
             <FieldLabel>OpenAI API Key</FieldLabel>
             <Input

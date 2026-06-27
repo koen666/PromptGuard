@@ -237,12 +237,21 @@ DATABASE_URL=./data/promptguard.db
 LLM_PROVIDER=mock          # mock | openai | anthropic
 OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_BASE_URL=https://api.openai.com
+OPENAI_WIRE_API=responses
+OPENAI_MODEL=gpt-5.5
+OPENAI_REVIEW_MODEL=gpt-5.5
+OPENAI_REASONING_EFFORT=xhigh
+OPENAI_DISABLE_RESPONSE_STORAGE=true
+OPENAI_FALLBACK_TO_MOCK=false
 ANTHROPIC_MODEL=claude-3-5-haiku-20241022
 ```
 
 - 未配置 API Key 或 `LLM_PROVIDER=mock` 时，评测与安全扫描使用 **Mock 模拟器**，适合零成本演示。
 - 使用真实 API 时填写对应 Key，并将 `LLM_PROVIDER` 改为 `openai` 或 `anthropic`。
+- `OPENAI_BASE_URL` 支持 OpenAI-compatible 网关；未以 `/v1` 结尾时系统会自动拼接 `/v1`。
+- `OPENAI_WIRE_API=responses` 时会请求 `/v1/responses`，并在 `OPENAI_DISABLE_RESPONSE_STORAGE=true` 时发送 `store=false`。
+- `OPENAI_FALLBACK_TO_MOCK=false` 表示真实模型调用失败时直接报错，避免安全审核误用 mock 结果。
 
 ---
 

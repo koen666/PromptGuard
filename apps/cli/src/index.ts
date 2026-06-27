@@ -316,7 +316,13 @@ configCmd.command("get").action(async () => {
 configCmd
   .command("set")
   .option("--provider <provider>", "mock, openai, anthropic, or ollama")
+  .option("--openai-base-url <url>")
+  .option("--openai-wire-api <api>", "responses or chat_completions")
   .option("--openai-model <model>")
+  .option("--openai-review-model <model>")
+  .option("--openai-reasoning-effort <effort>")
+  .option("--openai-disable-response-storage <value>", "true or false")
+  .option("--openai-api-key <key>")
   .option("--anthropic-model <model>")
   .option("--ollama-model <model>")
   .option("--ollama-base-url <url>")
@@ -324,7 +330,16 @@ configCmd
     const actor = await requireCliPermission("settings:write");
     const settings = await updateSystemSettings({
       provider: opts.provider,
+      openaiBaseUrl: opts.openaiBaseUrl,
+      openaiWireApi: opts.openaiWireApi,
       openaiModel: opts.openaiModel,
+      openaiReviewModel: opts.openaiReviewModel,
+      openaiReasoningEffort: opts.openaiReasoningEffort,
+      openaiDisableResponseStorage:
+        typeof opts.openaiDisableResponseStorage === "string"
+          ? opts.openaiDisableResponseStorage === "true"
+          : undefined,
+      openaiApiKey: opts.openaiApiKey,
       anthropicModel: opts.anthropicModel,
       ollamaModel: opts.ollamaModel,
       ollamaBaseUrl: opts.ollamaBaseUrl,

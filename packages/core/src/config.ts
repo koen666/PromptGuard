@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export type LlmProvider = "mock" | "openai" | "anthropic" | "ollama";
+export type OpenAiWireApi = "responses" | "chat_completions";
 
 function findMonorepoRoot(startDir: string): string {
   let dir = startDir;
@@ -54,11 +55,23 @@ export function getLlmProvider(): LlmProvider {
 }
 
 export function getLlmConfig() {
+  const openaiWireApi = process.env.OPENAI_WIRE_API === "chat_completions" ? "chat_completions" : "responses";
+  const disableResponseStorage =
+    process.env.OPENAI_DISABLE_RESPONSE_STORAGE === "true" ||
+    process.env.DISABLE_RESPONSE_STORAGE === "true";
+  const openaiFallbackToMock = process.env.OPENAI_FALLBACK_TO_MOCK === "true";
+
   return {
     provider: getLlmProvider(),
     openaiApiKey: process.env.OPENAI_API_KEY,
     anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-    openaiModel: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+    openaiBaseUrl: process.env.OPENAI_BASE_URL ?? "https://api.openai.com",
+    openaiWireApi: openaiWireApi as OpenAiWireApi,
+    openaiModel: process.env.OPENAI_MODEL ?? process.env.MODEL ?? "gpt-4o-mini",
+    openaiReviewModel: process.env.OPENAI_REVIEW_MODEL ?? process.env.REVIEW_MODEL ?? process.env.OPENAI_MODEL ?? process.env.MODEL ?? "gpt-4o-mini",
+    openaiReasoningEffort: process.env.OPENAI_REASONING_EFFORT ?? process.env.MODEL_REASONING_EFFORT,
+    openaiDisableResponseStorage: disableResponseStorage,
+    openaiFallbackToMock,
     anthropicModel: process.env.ANTHROPIC_MODEL ?? "claude-3-5-haiku-20241022",
     ollamaModel: process.env.OLLAMA_MODEL ?? "qwen2.5:7b",
     ollamaBaseUrl: process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434",

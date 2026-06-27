@@ -20,7 +20,16 @@ export function getLlmAdapter(): LlmAdapter {
   if (adapterInstance) return adapterInstance;
   const config = getConfiguredLlm();
   if (config.provider === "openai" && config.openaiApiKey) {
-    adapterInstance = new OpenAiAdapter(config.openaiApiKey, config.openaiModel);
+    adapterInstance = new OpenAiAdapter({
+      apiKey: config.openaiApiKey,
+      defaultModel: config.openaiModel,
+      reviewModel: config.openaiReviewModel,
+      baseUrl: config.openaiBaseUrl,
+      wireApi: config.openaiWireApi,
+      reasoningEffort: config.openaiReasoningEffort,
+      disableResponseStorage: config.openaiDisableResponseStorage,
+      fallbackToMock: config.openaiFallbackToMock,
+    });
   } else if (config.provider === "anthropic" && config.anthropicApiKey) {
     adapterInstance = new AnthropicAdapter(config.anthropicApiKey, config.anthropicModel);
   } else if (config.provider === "ollama") {

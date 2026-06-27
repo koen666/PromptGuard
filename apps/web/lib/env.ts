@@ -26,5 +26,4 @@ export function loadEnv() {
     : path.join(root, "data", "promptguard.db");
 
   process.env.DATABASE_URL = dbPath;
-  process.env.LLM_PROVIDER ??= "mock";
 }
