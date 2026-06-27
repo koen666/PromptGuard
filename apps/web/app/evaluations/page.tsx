@@ -24,13 +24,13 @@ export default async function EvaluationsPage() {
     <>
       <TemplatePageWrap>
         <TemplateSectionHeader
-          tag="Benchmark"
-          title="Eval"
+          tag="基准测试"
+          title="评测"
           titleMuted="评测"
         />
         <NewEvaluationForm prompts={prompts} datasets={datasets} />
       </TemplatePageWrap>
-      <TemplateListSection title="评测任务" description="对比 Prompt 版本在不同模型下的表现。">
+      <TemplateListSection title="评测任务" description="对比提示词版本在不同模型下的表现。">
         {runs.length === 0 ? (
           <p className="px-4 py-6 text-center text-white/40">还没有评测</p>
         ) : (
@@ -44,7 +44,7 @@ export default async function EvaluationsPage() {
                 sub={r.status}
                 specs={[
                   { label: "均分", value: r.avgScore?.toFixed(2) ?? "-" },
-                  { label: "Token", value: String(r.totalTokens ?? 0) },
+                  { label: "Token 数", value: String(r.totalTokens ?? 0) },
                   { label: "成本", value: `$${(r.totalCost ?? 0).toFixed(4)}` },
                   { label: "错误", value: r.errorMessage ? r.errorMessage.slice(0, 32) : "-" },
                   { label: "时间", value: formatDate(r.createdAt) },

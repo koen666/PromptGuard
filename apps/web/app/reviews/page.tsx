@@ -15,14 +15,14 @@ export default async function ReviewsPage() {
   return (
     <>
       <TemplatePageWrap>
-        <TemplateSectionHeader tag="Review" title="审核队列" titleMuted="Review" action={<StatusPill value={pending ? "pending" : "clear"} />} />
+        <TemplateSectionHeader tag="审核" title="审核队列" titleMuted="人工审批" action={<StatusPill value={pending ? "pending" : "clear"} />} />
 
         <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
           <Panel>
             <h3 className="text-lg font-semibold text-white">评审依据</h3>
-            <p className="mt-2 text-sm leading-6 text-white/45">审核前应同时查看版本 Diff、评测报告、安全扫描和变更说明。当前页面先聚合队列和处理动作。</p>
+            <p className="mt-2 text-sm leading-6 text-white/45">审核前应同时查看版本差异、评测报告、安全扫描和变更说明。当前页面先聚合队列和处理动作。</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-4">
-              {["版本 Diff", "评测报告", "安全风险", "审核意见"].map((item) => (
+              {["版本差异", "评测报告", "安全风险", "审核意见"].map((item) => (
                 <div key={item} className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white/65">
                   {item}
                 </div>
@@ -40,7 +40,7 @@ export default async function ReviewsPage() {
         </div>
       </TemplatePageWrap>
 
-      <TemplateListSection title="审核队列" description="人工审核 Prompt 版本变更。">
+      <TemplateListSection title="审核队列" description="人工审核提示词版本变更。">
         {reviews.length === 0 ? (
           <p className="px-4 py-6 text-center text-white/40">暂无审核记录</p>
         ) : (
@@ -50,7 +50,7 @@ export default async function ReviewsPage() {
                 href={`/reviews/${r.id}`}
                 index={i}
                 icon="solar:clipboard-check-linear"
-                name={`Prompt ${r.promptId.slice(0, 12)}…`}
+                name={`提示词 ${r.promptId.slice(0, 12)}…`}
                 sub={r.status}
 	                specs={[
 	                  { label: "提交人", value: r.submittedBy ?? "—" },

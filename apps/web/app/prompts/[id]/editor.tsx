@@ -30,11 +30,11 @@ export function PromptEditor({ promptId, initialContent }: { promptId: string; i
     <Panel>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-white">编辑 Prompt</h2>
+          <h2 className="text-lg font-semibold text-white">编辑提示词</h2>
           <p className="mt-1 text-sm text-white/45">保存会生成新的不可变版本快照。</p>
         </div>
         <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/45">
-          Draft
+          草稿
         </div>
       </div>
       <div className="mt-4">

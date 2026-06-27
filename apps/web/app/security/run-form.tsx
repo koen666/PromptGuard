@@ -49,7 +49,7 @@ export function SecurityRunForm({ prompts }: { prompts: PromptItem[] }) {
     <Panel className="mt-4">
       <div className="grid gap-4 md:grid-cols-4">
       <div>
-        <FieldLabel>Prompt</FieldLabel>
+        <FieldLabel>提示词</FieldLabel>
         <Select value={promptId} onChange={(e) => setPromptId(e.target.value)}>
           {prompts.map((prompt) => (
             <option key={prompt.id} value={prompt.id}>

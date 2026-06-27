@@ -76,6 +76,7 @@ export function TemplateListItem({
   specs: Array<{ label: string; value: string; wide?: boolean }>;
   tier?: string;
 }) {
+  const displaySub = sub ? getStatusLabel(sub) : "";
   const inner = (
     <div className="grid grid-cols-1 items-center gap-3 border-b border-white/[0.06] p-3 transition last:border-b-0 hover:bg-white/[0.045] sm:p-4 lg:grid-cols-12">
       <div className="col-span-1 flex min-w-0 items-center gap-3 md:col-span-4">
@@ -84,7 +85,7 @@ export function TemplateListItem({
         </div>
         <div className="min-w-0">
           <h4 className="truncate text-sm font-semibold text-white">{name}</h4>
-          {sub && <p className="mt-1 text-xs text-white/36">{sub}</p>}
+          {sub && <p className="mt-1 text-xs text-white/36">{displaySub}</p>}
         </div>
       </div>
 
@@ -151,9 +152,57 @@ export function StatusPill({ value, className }: { value: string; className?: st
 
   return (
     <span className={cn("rounded-full border px-2.5 py-1 text-xs font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]", tone, className)}>
-      {value}
+      {getStatusLabel(value)}
     </span>
   );
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  active: "生效中",
+  applied: "已应用",
+  approved: "已通过",
+  archived: "已归档",
+  audit: "审计",
+  clear: "已清空",
+  completed: "已完成",
+  diff: "版本差异",
+  draft: "草稿",
+  empty: "暂无",
+  evaluated: "已评测",
+  evaluation: "评测",
+  fail: "失败",
+  failed: "失败",
+  "fallback draft": "兜底草案",
+  gray: "灰度中",
+  high: "高",
+  idle: "空闲",
+  improved: "有提升",
+  low: "低",
+  medium: "中",
+  missing: "缺失",
+  mock: "模拟",
+  pass: "通过",
+  passed: "通过",
+  pending: "待审核",
+  ready: "就绪",
+  regressed: "有退化",
+  rejected: "已驳回",
+  release: "发布",
+  risk: "风险",
+  rolled_back: "已回滚",
+  running: "运行中",
+  security: "安全",
+  security_checked: "安全已检",
+  unknown: "未知",
+  version: "版本",
+  versioned: "已生成版本",
+  "review model": "模型评审",
+  review_pending: "待审核",
+};
+
+export function getStatusLabel(value: string) {
+  const normalized = value.trim().toLowerCase();
+  return STATUS_LABELS[normalized] ?? value;
 }
 
 export function Panel({

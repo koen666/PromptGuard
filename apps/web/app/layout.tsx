@@ -10,7 +10,7 @@ loadEnv();
 
 export const metadata: Metadata = {
   title: "PromptGuard",
-  description: "Prompt 核心资产保护库",
+  description: "提示词核心资产保护库",
 };
 
 export const dynamic = "force-dynamic";
