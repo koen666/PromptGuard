@@ -12,6 +12,7 @@ import {
   listPrompts,
   listReviews,
   listSecurityScans,
+  listUsers,
 } from "@promptguard/core";
 
 loadEnv();
@@ -52,7 +53,38 @@ function PanelHeader({
   );
 }
 
-function TeamStack({ compact = false }: { compact?: boolean }) {
+function avatarLabel(name: string) {
+  const trimmed = name.trim();
+  if (!trimmed) return "?";
+  return /[\u4e00-\u9fa5]/.test(trimmed[0]) ? trimmed[0] : trimmed.slice(0, 2).toUpperCase();
+}
+
+function formatEventTime(value?: string | null) {
+  if (!value) return "暂无时间";
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(value));
+}
+
+function buildDateColumns() {
+  const weekdays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+  const today = new Date();
+  return Array.from({ length: 4 }).map((_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() + index - 1);
+    return {
+      day: String(date.getDate()),
+      week: weekdays[date.getDay()],
+      active: index === 1,
+    };
+  });
+}
+
+function TeamStack({ compact = false, members }: { compact?: boolean; members: string[] }) {
   const wrapClass = compact ? "flex -space-x-1.5" : "flex -space-x-2";
   const avatarClass = compact
     ? "flex h-6 w-6 items-center justify-center rounded-full border border-[#1d1e24] text-[8px] font-semibold text-white shadow-[0_8px_18px_rgba(0,0,0,0.20)]"
@@ -61,20 +93,22 @@ function TeamStack({ compact = false }: { compact?: boolean }) {
     ? "flex h-6 w-6 items-center justify-center rounded-full border border-[#1d1e24] bg-[#2a2c35] text-[8px] font-semibold text-white/60"
     : "flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#1d1e24] bg-[#2a2c35] text-[10px] font-semibold text-white/60";
 
+  const visibleMembers = members.slice(0, 4);
+  const extraCount = Math.max(members.length - visibleMembers.length, 0);
+
   return (
     <div className={wrapClass}>
-      {["王", "杨", "陈", "李"].map((name, index) => (
+      {visibleMembers.map((name, index) => (
         <div
           key={name}
           className={avatarClass}
           style={{ background: swatches[index] }}
+          title={name}
         >
-          {name}
+          {avatarLabel(name)}
         </div>
       ))}
-      <div className={moreClass}>
-        +4
-      </div>
+      {extraCount > 0 && <div className={moreClass}>+{extraCount}</div>}
     </div>
   );
 }
@@ -83,13 +117,19 @@ function TaskCard({
   tone,
   title,
   sub,
-  time,
+  meta,
+  href,
+  actionLabel,
+  members,
   className = "",
 }: {
   tone: "yellow" | "blue" | "purple";
   title: string;
   sub: string;
-  time: string;
+  meta: string;
+  href: string;
+  actionLabel: string;
+  members: string[];
   className?: string;
 }) {
   const tones = {
@@ -100,7 +140,7 @@ function TaskCard({
   const pill = tone === "yellow" ? "bg-white/55 text-[#1a1820]" : "bg-white/18 text-white";
 
   return (
-    <div className={`rounded-[20px] p-4 shadow-[0_18px_36px_rgba(0,0,0,0.25)] ${tones[tone]} ${className}`}>
+    <Link href={href} className={`block rounded-[20px] p-4 shadow-[0_18px_36px_rgba(0,0,0,0.25)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_44px_rgba(0,0,0,0.28)] ${tones[tone]} ${className}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[11px] opacity-70">{sub}</div>
@@ -109,14 +149,51 @@ function TaskCard({
         <Iconify icon="solar:menu-dots-bold" width="18" />
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <TeamStack compact />
-        <span className="text-[11px] font-semibold opacity-80">{time}</span>
+        <TeamStack compact members={members} />
+        <span className="text-[11px] font-semibold opacity-80">{meta}</span>
       </div>
       <div className={`mt-4 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium ${pill}`}>
         <Iconify icon="solar:document-text-linear" width="15" />
-        证据包
+        {actionLabel}
       </div>
-    </div>
+    </Link>
+  );
+}
+
+function ReviewProgressCard({
+  promptName,
+  status,
+  items,
+}: {
+  promptName: string;
+  status: string;
+  items: Array<{ label: string; done: boolean }>;
+}) {
+  const doneCount = items.filter((item) => item.done).length;
+  const width = `${Math.round((doneCount / items.length) * 100)}%`;
+
+  return (
+    <Link href="/reviews" className="absolute left-4 right-4 top-[124px] rounded-[24px] bg-[#ff66c4] p-4 text-[#1d1420] shadow-[0_18px_38px_rgba(255,102,196,0.26)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_44px_rgba(255,102,196,0.30)]">
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="text-xs opacity-70">{promptName}</div>
+          <div className="text-base font-bold">审核 {getStatusLabel(status)}</div>
+        </div>
+        <Iconify icon="solar:menu-dots-bold" width="18" />
+      </div>
+      <div className="mt-3 text-xs font-semibold">已完成 {doneCount}/{items.length}</div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/34">
+        <div className="h-full rounded-full bg-[#1d1420]" style={{ width }} />
+      </div>
+      <div className="mt-3 space-y-1 text-xs font-medium">
+        {items.map((item) => (
+          <div key={item.label} className="flex items-center gap-2">
+            <span className={item.done ? "flex h-3.5 w-3.5 items-center justify-center rounded bg-[#1d1420] text-[9px] text-white" : "h-3.5 w-3.5 rounded border border-[#1d1420]/42"}>{item.done ? "✓" : ""}</span>
+            {item.label}
+          </div>
+        ))}
+      </div>
+    </Link>
   );
 }
 
@@ -198,7 +275,7 @@ function InsightBars() {
 }
 
 export default async function DashboardPage() {
-  const [stats, prompts, datasets, runs, scans, reviews, releases] = await Promise.all([
+  const [stats, prompts, datasets, runs, scans, reviews, releases, users] = await Promise.all([
     getDashboardStats(),
     listPrompts(),
     listDatasets(),
@@ -206,6 +283,7 @@ export default async function DashboardPage() {
     listSecurityScans(),
     listReviews(),
     listGrayReleases(),
+    listUsers(),
   ]);
 
   const featured = prompts[0] ? await getPrompt(prompts[0].id) : null;
@@ -215,6 +293,28 @@ export default async function DashboardPage() {
   const failedScans = scans.filter((scan) => !scan.passed).length;
   const latestRun = runs[0];
   const latestScan = scans[0];
+  const latestReview = reviews[0];
+  const latestDataset = datasets[0];
+  const teamMembers = users.map((user) => `${user.username}${user.roles.length ? ` · ${user.roles.join("/")}` : ""}`);
+  const reviewActors = [
+    ...reviews.map((review) => review.submittedBy),
+    ...reviews.map((review) => review.reviewedBy),
+  ].filter((actor): actor is string => Boolean(actor));
+  const actorMembers = Array.from(new Set([
+    ...teamMembers,
+    ...reviewActors,
+  ])).slice(0, 8);
+  const cardMembers = actorMembers.length ? actorMembers : ["system"];
+  const dateColumns = buildDateColumns();
+  const promptName = featured?.name ?? prompts[0]?.name ?? "暂无 Prompt";
+  const promptVersionLabel = featuredVersion ? `v${featuredVersion.versionNumber}` : "暂无版本";
+  const checklistItems = [
+    { label: "Prompt 版本", done: Boolean(featuredVersion) },
+    { label: "评测完成", done: runs.some((run) => run.status === "completed") },
+    { label: "安全扫描", done: scans.some((scan) => scan.status === "completed" && scan.passed) },
+    { label: "人工审核", done: reviews.some((review) => review.status === "approved") },
+    { label: "灰度发布", done: releases.some((release) => release.status === "active" || release.status === "completed") },
+  ];
   const previewLines = (featuredVersion?.content ?? "PromptGuard 资产库等待导入核心提示词。")
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -230,16 +330,16 @@ export default async function DashboardPage() {
               <div className="min-w-0">
                 <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#8a7dff]">
                   <span className="h-2 w-2 rounded-full bg-[#8a7dff] shadow-[0_0_18px_rgba(138,125,255,0.8)]" />
-                  团队项目
+                  PromptGuard 项目
                 </div>
                 <h1 className="truncate text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                  {featured?.name ?? "PromptGuard 工作台"}
+                  {promptName}
                 </h1>
-                <p className="mt-1 text-sm text-white/36">Web 控制台 / 提示词版本评审</p>
+                <p className="mt-1 text-sm text-white/36">Web 控制台 / {promptVersionLabel} / 生命周期证据</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <TeamStack />
-                <div className="rounded-[16px] bg-[#15161b] px-4 py-2 text-sm text-white/58">1 周</div>
+                <TeamStack members={cardMembers} />
+                <div className="rounded-[16px] bg-[#15161b] px-4 py-2 text-sm text-white/58">{prompts.length} 个 Prompt</div>
               </div>
             </div>
 
@@ -250,15 +350,10 @@ export default async function DashboardPage() {
                 ))}
               </div>
 
-              {[
-                { day: "26", week: "周一" },
-                { day: "27", week: "周二" },
-                { day: "28", week: "周三" },
-                { day: "29", week: "周四" },
-              ].map((item, index) => (
+              {dateColumns.map((item, index) => (
                 <div key={item.day} className="relative min-h-[480px] border-r border-white/[0.05] last:border-r-0">
                   <div className="flex h-16 items-end justify-center gap-1 border-b border-white/[0.06] pb-4">
-                    <span className={index === 1 ? "text-4xl font-semibold text-white" : "text-3xl font-semibold text-white/28"}>{item.day}</span>
+                    <span className={item.active ? "text-4xl font-semibold text-white" : "text-3xl font-semibold text-white/28"}>{item.day}</span>
                     <span className="mb-1 text-xs text-white/34">/{item.week}</span>
                   </div>
                   <div className="absolute inset-x-0 top-16 h-px bg-white/[0.05]" />
@@ -268,13 +363,39 @@ export default async function DashboardPage() {
 
                   {index === 0 && (
                     <>
-                      <TaskCard className="absolute left-4 right-4 top-[88px]" tone="yellow" title="团队评审" sub="设计规范" time="10:15 - 12:15" />
-                      <TaskCard className="absolute left-4 right-4 top-[252px]" tone="blue" title="提示词工作台" sub="线框稿" time="莫妮卡" />
+                      <TaskCard
+                        className="absolute left-4 right-4 top-[88px]"
+                        tone="yellow"
+                        title={latestReview ? `审核 ${getStatusLabel(latestReview.status)}` : "暂无审核记录"}
+                        sub={`${promptName} ${promptVersionLabel}`}
+                        meta={latestReview ? `${latestReview.submittedBy ?? "engineer"} · ${formatEventTime(latestReview.createdAt)}` : "等待提交审核"}
+                        href="/reviews"
+                        actionLabel="查看审核证据"
+                        members={cardMembers}
+                      />
+                      <TaskCard
+                        className="absolute left-4 right-4 top-[252px]"
+                        tone="blue"
+                        title={activeRelease ? `${activeRelease.trafficPercent}% 灰度发布` : "暂无灰度发布"}
+                        sub={activeRelease ? "发布控制" : "RoutePolicy"}
+                        meta={activeRelease ? formatEventTime(activeRelease.createdAt) : "等待审核通过"}
+                        href="/releases"
+                        actionLabel="查看发布记录"
+                        members={cardMembers}
+                      />
                     </>
                   )}
                   {index === 1 && (
                     <div className="absolute left-4 right-4 top-[132px]">
-                      <TaskCard tone="purple" title="提示词优化" sub="安全策略" time="10:45 - 14:15" />
+                      <TaskCard
+                        tone="purple"
+                        title={latestRun ? `评测 ${getStatusLabel(latestRun.status)}` : "暂无评测任务"}
+                        sub={latestDataset?.name ?? "未绑定数据集"}
+                        meta={latestRun ? `均分 ${latestRun.avgScore?.toFixed(2) ?? "-"} · ${formatEventTime(latestRun.createdAt)}` : "等待运行评测"}
+                        href="/evaluations"
+                        actionLabel="查看评测结果"
+                        members={cardMembers}
+                      />
                     </div>
                   )}
                   {index === 2 && (
@@ -287,27 +408,11 @@ export default async function DashboardPage() {
                     </Link>
                   )}
                   {index === 3 && (
-                    <div className="absolute left-4 right-4 top-[124px] rounded-[24px] bg-[#ff66c4] p-4 text-[#1d1420] shadow-[0_18px_38px_rgba(255,102,196,0.26)]">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="text-xs opacity-70">改版</div>
-                          <div className="text-base font-bold">提示词审核</div>
-                        </div>
-                        <Iconify icon="solar:menu-dots-bold" width="18" />
-                      </div>
-                      <div className="mt-3 text-xs font-semibold">已完成 3/5</div>
-                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/34">
-                        <div className="h-full w-3/5 rounded-full bg-[#1d1420]" />
-                      </div>
-                      <div className="mt-3 space-y-1 text-xs font-medium">
-                        {["调研", "线框稿", "界面设计", "原型", "对比测试"].map((item, idx) => (
-                          <div key={item} className="flex items-center gap-2">
-                            <span className={idx < 3 ? "flex h-3.5 w-3.5 items-center justify-center rounded bg-[#1d1420] text-[9px] text-white" : "h-3.5 w-3.5 rounded border border-[#1d1420]/42"}>{idx < 3 ? "✓" : ""}</span>
-                            {item}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <ReviewProgressCard
+                      promptName={promptName}
+                      status={latestReview?.status ?? "pending"}
+                      items={checklistItems}
+                    />
                   )}
                 </div>
               ))}
