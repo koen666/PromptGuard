@@ -9,8 +9,14 @@ import { Iconify } from "./iconify";
 export function TemplateNav() {
   const pathname = usePathname();
   const activeLink = NAV_LINKS.find((link) => pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href))) ?? NAV_LINKS[0];
+  const isActiveHref = (href: string) => pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
   const secondaryLinks = NAV_LINKS.slice(6);
   const primaryLinks = NAV_LINKS.slice(0, 6);
+  const quickLinks = [
+    { href: "/prompts", icon: "solar:document-text-linear", label: "Prompt 资产" },
+    { href: "/evaluations", icon: "solar:chart-square-linear", label: "评测统计" },
+    { href: "/reviews", icon: "solar:bookmark-linear", label: "审核收藏" },
+  ];
 
   return (
     <>
@@ -131,17 +137,56 @@ export function TemplateNav() {
 
           <div className="mt-auto space-y-3">
             <div className="flex items-center justify-between rounded-[18px] border border-white/[0.07] bg-[#16171d] p-2">
-              {["solar:document-text-linear", "solar:chart-square-linear", "solar:bookmark-linear"].map((icon) => (
-                <button key={icon} className="flex h-9 w-9 items-center justify-center rounded-[13px] text-white/46 transition hover:bg-white/[0.06] hover:text-white">
-                  <Iconify icon={icon} width="17" />
-                </button>
-              ))}
-              <button className="flex h-9 w-9 items-center justify-center rounded-full bg-[#7067ff] text-white shadow-[0_10px_22px_rgba(112,103,255,0.38)]">
+              {quickLinks.map((item) => {
+                const active = isActiveHref(item.href);
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    aria-label={item.label}
+                    title={item.label}
+                    className={
+                      active
+                        ? "flex h-9 w-9 items-center justify-center rounded-full bg-[#7067ff] text-white shadow-[0_10px_22px_rgba(112,103,255,0.38)] transition hover:bg-[#8276ff]"
+                        : "flex h-9 w-9 items-center justify-center rounded-[13px] text-white/46 transition hover:bg-white/[0.06] hover:text-white"
+                    }
+                  >
+                    <Iconify icon={item.icon} width="17" />
+                  </Link>
+                );
+              })}
+              <Link
+                href="/security"
+                aria-current={isActiveHref("/security") ? "page" : undefined}
+                aria-label="安全扫描"
+                title="安全扫描"
+                className={
+                  isActiveHref("/security")
+                    ? "flex h-9 w-9 items-center justify-center rounded-full bg-[#7067ff] text-white shadow-[0_10px_22px_rgba(112,103,255,0.38)] transition hover:bg-[#8276ff]"
+                    : "flex h-9 w-9 items-center justify-center rounded-[13px] text-white/46 transition hover:bg-white/[0.06] hover:text-white"
+                }
+              >
                 <Iconify icon="solar:moon-fog-linear" width="18" />
-              </button>
+              </Link>
             </div>
-            <Link href="/prompts" className="flex h-[120px] flex-col items-center justify-center rounded-[24px] border border-dashed border-white/18 bg-[#15161b]/72 text-center transition hover:border-[#7067ff]/55 hover:bg-[#1c1d26]">
-              <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#7067ff] text-white shadow-[0_12px_26px_rgba(112,103,255,0.42)]">
+            <Link
+              href="/prompts"
+              aria-current={isActiveHref("/prompts") ? "page" : undefined}
+              aria-label="新增 Prompt"
+              title="新增 Prompt"
+              className={
+                isActiveHref("/prompts")
+                  ? "flex h-[120px] flex-col items-center justify-center rounded-[24px] border border-dashed border-[#7067ff]/60 bg-[#1c1d26] text-center shadow-[0_16px_34px_rgba(112,103,255,0.16)] transition hover:border-[#8276ff]/70"
+                  : "flex h-[120px] flex-col items-center justify-center rounded-[24px] border border-dashed border-white/18 bg-[#15161b]/72 text-center transition hover:border-[#7067ff]/55 hover:bg-[#1c1d26]"
+              }
+            >
+              <span className={
+                isActiveHref("/prompts")
+                  ? "mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#8276ff] text-white shadow-[0_12px_26px_rgba(112,103,255,0.50)]"
+                  : "mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#7067ff] text-white shadow-[0_12px_26px_rgba(112,103,255,0.42)]"
+              }>
                 <Iconify icon="solar:add-circle-linear" width="21" />
               </span>
               <span className="text-sm font-medium text-white">Add New Prompt</span>
