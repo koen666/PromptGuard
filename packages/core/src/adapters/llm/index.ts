@@ -54,7 +54,17 @@ function getConfiguredLlm() {
     return {
       ...envConfig,
       provider: (values.llmProvider as typeof envConfig.provider | undefined) ?? envConfig.provider,
+      openaiBaseUrl: values.openaiBaseUrl ?? envConfig.openaiBaseUrl,
+      openaiWireApi: (values.openaiWireApi as typeof envConfig.openaiWireApi | undefined) ?? envConfig.openaiWireApi,
       openaiModel: values.openaiModel ?? envConfig.openaiModel,
+      openaiReviewModel: values.openaiReviewModel ?? envConfig.openaiReviewModel,
+      openaiReasoningEffort: values.openaiReasoningEffort ?? envConfig.openaiReasoningEffort,
+      openaiDisableResponseStorage: values.openaiDisableResponseStorage
+        ? values.openaiDisableResponseStorage === "true"
+        : envConfig.openaiDisableResponseStorage,
+      openaiFallbackToMock: values.openaiFallbackToMock
+        ? values.openaiFallbackToMock === "true"
+        : envConfig.openaiFallbackToMock,
       anthropicModel: values.anthropicModel ?? envConfig.anthropicModel,
       ollamaModel: values.ollamaModel ?? envConfig.ollamaModel,
       ollamaBaseUrl: values.ollamaBaseUrl ?? envConfig.ollamaBaseUrl,

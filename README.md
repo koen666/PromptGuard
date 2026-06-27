@@ -38,7 +38,8 @@
 | Prompt 资产 | 创建、编辑、自动版本号、diff 对比、回滚 |
 | 评测数据集 | 用例管理、JSON 导入 |
 | 自动评测 | 默认 Mock；可选 OpenAI / Anthropic |
-| 安全扫描 | 诱导测试与泄露风险检测 |
+| 安全扫描 | 诱导测试、泄露风险检测、GPT 结构化安全评审 |
+| Prompt 自动优化 | 基于安全 finding 生成修复建议和新版 Prompt 草案，可一键保存为新版本 |
 | 审核工作流 | 提交 → 通过 / 拒绝 |
 | 灰度发布 | 流量比例、观察指标、一键回滚 |
 | 报告导出 | JSON / HTML（写入 `reports/`） |
@@ -234,7 +235,7 @@ pnpm --filter @promptguard/web start
 
 ```env
 DATABASE_URL=./data/promptguard.db
-LLM_PROVIDER=mock          # mock | openai | anthropic
+LLM_PROVIDER=mock          # mock | openai | anthropic | ollama
 OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
 OPENAI_BASE_URL=https://api.openai.com
@@ -274,6 +275,8 @@ pnpm cli -- project init --sample
 pnpm cli -- prompt list
 pnpm cli -- prompt import --file .promptguard/prompts/customer-service.md --tags customer-service,production
 pnpm cli -- prompt run customer-service --input "我的订单什么时候到？"
+pnpm cli -- security scan --prompt <promptId> --version 1
+pnpm cli -- security optimize --scan <scanId> --apply
 pnpm cli -- eval run --prompt <promptId> --version 1 --dataset <datasetId>
 pnpm cli -- report generate --run <runId> --format html
 ```

@@ -221,11 +221,26 @@ function renderDiffSection(report: ReportData) {
 
 function renderSecuritySection(report: ReportData) {
   if (!report.security) return "";
+  const optimization = report.security.latestOptimization;
+  const review = optimization?.review;
   return `
     <section>
       <h2>安全扫描</h2>
       <p>风险分: ${report.security.riskScore?.toFixed(2) ?? "-"}</p>
       <p>通过: ${report.security.passed ? "是" : "否"}</p>
+      ${review ? `
+        <h3>GPT 结构化评审</h3>
+        <p>来源: ${escapeHtml(review.source)}</p>
+        <p>综合风险: ${escapeHtml(review.overallRiskLevel)} / ${review.overallRiskScore.toFixed(2)}</p>
+        <p>泄露概率: ${Math.round(review.leakProbability * 100)}%</p>
+        <p>${escapeHtml(review.summary)}</p>
+        <table>
+          <tr><th>Risk</th><th>Path</th><th>Probability</th><th>Fix</th></tr>
+          ${review.risks.map((risk) => `<tr><td>${escapeHtml(risk.title)}<br/>${escapeHtml(risk.severity)}</td><td>${escapeHtml(maskSensitiveText(risk.reverseEngineeringPath))}</td><td>${Math.round(risk.leakProbability * 100)}%</td><td>${escapeHtml(risk.recommendation)}</td></tr>`).join("")}
+        </table>
+        <h3>优化 Prompt 草案</h3>
+        <pre>${escapeHtml(maskSensitiveText(review.optimizedPrompt))}</pre>
+      ` : ""}
       <table>
         <tr><th>Finding</th><th>Risk</th><th>Passed</th><th>Attack / Evidence</th><th>Recommendation</th></tr>
         ${report.security.findings.map((f) => `<tr><td>${escapeHtml(f.testName)}</td><td>${f.riskLevel}</td><td>${f.passed ? "pass" : "fail"}</td><td><strong>Input:</strong> ${escapeHtml(maskSensitiveText(f.attackInput))}<br/><strong>Output:</strong> ${escapeHtml(maskSensitiveText(f.modelOutput))}</td><td>${escapeHtml(f.recommendation ?? "")}</td></tr>`).join("")}

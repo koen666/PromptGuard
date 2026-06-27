@@ -9,6 +9,7 @@ export * from "./services/prompt.js";
 export * from "./services/dataset.js";
 export * from "./services/evaluation.js";
 export * from "./services/security.js";
+export * from "./services/optimizer.js";
 export * from "./services/release.js";
 export * from "./services/report.js";
 export { getReportRecord } from "./services/report.js";

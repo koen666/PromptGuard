@@ -1,0 +1,23 @@
+CREATE TABLE `prompt_optimizations` (
+	`id` text PRIMARY KEY NOT NULL,
+	`scan_id` text NOT NULL,
+	`prompt_id` text NOT NULL,
+	`source_version_id` text NOT NULL,
+	`candidate_version_id` text,
+	`status` text DEFAULT 'draft' NOT NULL,
+	`provider` text DEFAULT 'mock' NOT NULL,
+	`model` text DEFAULT 'promptguard-review' NOT NULL,
+	`summary` text NOT NULL,
+	`overall_risk_level` text NOT NULL,
+	`overall_risk_score` real NOT NULL,
+	`leak_probability` real NOT NULL,
+	`review_json` text NOT NULL,
+	`optimized_prompt` text NOT NULL,
+	`created_by` text DEFAULT 'system',
+	`created_at` text DEFAULT (datetime('now')) NOT NULL,
+	`applied_at` text,
+	FOREIGN KEY (`scan_id`) REFERENCES `security_scans`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`prompt_id`) REFERENCES `prompts`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`source_version_id`) REFERENCES `prompt_versions`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`candidate_version_id`) REFERENCES `prompt_versions`(`id`) ON UPDATE no action ON DELETE no action
+);

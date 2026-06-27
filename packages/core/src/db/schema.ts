@@ -211,6 +211,26 @@ export const securityFindings = sqliteTable("security_findings", {
   passed: integer("passed", { mode: "boolean" }).notNull(),
 });
 
+export const promptOptimizations = sqliteTable("prompt_optimizations", {
+  id: text("id").primaryKey(),
+  scanId: text("scan_id").notNull().references(() => securityScans.id, { onDelete: "cascade" }),
+  promptId: text("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
+  sourceVersionId: text("source_version_id").notNull().references(() => promptVersions.id),
+  candidateVersionId: text("candidate_version_id").references(() => promptVersions.id),
+  status: text("status", { enum: ["draft", "applied"] }).notNull().default("draft"),
+  provider: text("provider").notNull().default("mock"),
+  model: text("model").notNull().default("promptguard-review"),
+  summary: text("summary").notNull(),
+  overallRiskLevel: text("overall_risk_level", { enum: ["low", "medium", "high", "critical"] }).notNull(),
+  overallRiskScore: real("overall_risk_score").notNull(),
+  leakProbability: real("leak_probability").notNull(),
+  reviewJson: text("review_json").notNull(),
+  optimizedPrompt: text("optimized_prompt").notNull(),
+  createdBy: text("created_by").default("system"),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  appliedAt: text("applied_at"),
+});
+
 export const reviewRequests = sqliteTable("review_requests", {
   id: text("id").primaryKey(),
   promptId: text("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
@@ -362,4 +382,18 @@ export const evaluationComparisonsRelations = relations(evaluationComparisons, (
 export const securityScansRelations = relations(securityScans, ({ one, many }) => ({
   promptVersion: one(promptVersions, { fields: [securityScans.promptVersionId], references: [promptVersions.id] }),
   findings: many(securityFindings),
+  optimizations: many(promptOptimizations),
+}));
+
+export const promptOptimizationsRelations = relations(promptOptimizations, ({ one }) => ({
+  scan: one(securityScans, { fields: [promptOptimizations.scanId], references: [securityScans.id] }),
+  prompt: one(prompts, { fields: [promptOptimizations.promptId], references: [prompts.id] }),
+  sourceVersion: one(promptVersions, {
+    fields: [promptOptimizations.sourceVersionId],
+    references: [promptVersions.id],
+  }),
+  candidateVersion: one(promptVersions, {
+    fields: [promptOptimizations.candidateVersionId],
+    references: [promptVersions.id],
+  }),
 }));

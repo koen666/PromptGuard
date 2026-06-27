@@ -64,6 +64,13 @@
       "when": 1782495000000,
       "tag": "0008_version_lifecycle_security_recommendation",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1782581400000,
+      "tag": "0009_prompt_optimizer",
+      "breakpoints": true
     }
   ]
 }

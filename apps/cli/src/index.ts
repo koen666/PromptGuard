@@ -9,6 +9,7 @@ import { Command } from "commander";
 import dotenv from "dotenv";
 import {
   createUser,
+  applyPromptOptimization,
   approveReview,
   compareEvaluationVersions,
   createDataset,
@@ -51,6 +52,7 @@ import {
   rollbackPrompt,
   rollbackRelease,
   runEvaluation,
+  runPromptOptimization,
   runMigrations,
   runSecurityScan,
   savePromptVersion,
@@ -67,7 +69,7 @@ const sessionFile = path.resolve(__dirname, "../../../.promptguard-session.json"
 
 const program = new Command();
 
-program.name("promptguard").description("PromptGuard CLI").version("0.1.0");
+program.name("promptguard").description("PromptGuard CLI").version("0.1.0", "-V, --cli-version");
 
 function readCliToken() {
   if (!fs.existsSync(sessionFile)) return undefined;
@@ -647,13 +649,37 @@ securityCmd
   .command("scan")
   .requiredOption("--prompt <id>")
   .requiredOption("--version <n>", "Version number", (v) => parseInt(v, 10))
+  .option("--no-optimize", "Skip GPT structured review and optimizer draft generation")
   .action(async (opts) => {
     await requireCliPermission("security:run");
-    const scan = await runSecurityScan({ promptId: opts.prompt, versionNumber: opts.version });
+    const scan = await runSecurityScan({ promptId: opts.prompt, versionNumber: opts.version, optimize: opts.optimize });
     console.log(chalk.green(`Scan complete: ${scan?.id} risk=${scan?.riskScore?.toFixed(2)} passed=${scan?.passed}`));
+    if (scan?.latestOptimization) {
+      console.log(`  review=${scan.latestOptimization.review.source} risk=${scan.latestOptimization.overallRiskLevel} leak=${Math.round(scan.latestOptimization.leakProbability * 100)}%`);
+      console.log(`  optimizer=${scan.latestOptimization.id} status=${scan.latestOptimization.status}`);
+    }
     if (scan?.id) {
       const { filePath } = await exportReport(scan.id, "html", { type: "security" });
       printReportPath("Security report", filePath);
+    }
+  });
+
+securityCmd
+  .command("optimize")
+  .requiredOption("--scan <id>")
+  .option("--apply", "Save optimized prompt as a new prompt version")
+  .option("--optimization <id>", "Apply an existing optimization draft")
+  .action(async (opts) => {
+    const actor = await requireCliPermission(opts.apply || opts.optimization ? "prompt:write" : "security:run");
+    const optimization = opts.optimization
+      ? await applyPromptOptimization(opts.optimization, actor.username)
+      : await runPromptOptimization({ scanId: opts.scan, actor: actor.username, apply: !!opts.apply });
+    console.log(chalk.green(`Optimization ${optimization.status}: ${optimization.id}`));
+    console.log(`  source=${optimization.review.source}`);
+    console.log(`  risk=${optimization.overallRiskLevel} score=${optimization.overallRiskScore.toFixed(2)} leak=${Math.round(optimization.leakProbability * 100)}%`);
+    console.log(`  summary=${optimization.summary}`);
+    if (optimization.candidateVersionId) {
+      console.log(`  candidateVersion=${optimization.candidateVersionId}`);
     }
   });
 
@@ -835,4 +861,8 @@ reportCmd
     console.log(chalk.green(`Report saved: ${filePath}`));
   });
 
-program.parse();
+const argv = process.argv[2] === "--"
+  ? [process.argv[0], process.argv[1], ...process.argv.slice(3)]
+  : process.argv;
+
+program.parse(argv);
