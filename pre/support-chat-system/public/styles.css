@@ -1,0 +1,483 @@
+:root {
+  color-scheme: dark;
+  --bg: #090b0c;
+  --panel: rgba(22, 25, 26, 0.78);
+  --panel-strong: rgba(29, 32, 32, 0.92);
+  --line: rgba(255, 255, 255, 0.1);
+  --muted: rgba(255, 255, 255, 0.52);
+  --soft: rgba(255, 255, 255, 0.68);
+  --text: #f8f7f1;
+  --gold: #d8ca82;
+  --green: #79f2c0;
+  --red: #ff8a8a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(215, 202, 130, 0.14), transparent 32%),
+    linear-gradient(220deg, rgba(79, 213, 176, 0.1), transparent 36%),
+    var(--bg);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button,
+textarea {
+  font: inherit;
+}
+
+.app-shell {
+  display: grid;
+  height: 100vh;
+  grid-template-columns: 86px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.dock {
+  position: sticky;
+  top: 0;
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 22px 0;
+  backdrop-filter: blur(24px);
+  box-shadow: inset -1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.dock-logo,
+.dock-item {
+  display: grid;
+  height: 48px;
+  width: 48px;
+  place-items: center;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--soft);
+}
+
+.dock-logo {
+  border-color: rgba(216, 202, 130, 0.35);
+  color: var(--gold);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.dock-item {
+  border-radius: 14px;
+  cursor: default;
+}
+
+.dock-item.active {
+  background: rgba(216, 202, 130, 0.18);
+  color: white;
+}
+
+.workspace {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: 100vh;
+  flex-direction: column;
+  padding: 28px;
+}
+
+.topbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 0 auto 22px;
+  max-width: 1440px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+h1,
+h2 {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(28px, 4vw, 48px);
+  letter-spacing: 0;
+}
+
+h2 {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.status-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.status-strip span,
+.mode,
+.samples button,
+.composer button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--soft);
+  padding: 9px 12px;
+  font-size: 13px;
+}
+
+.chat-layout {
+  display: grid;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 18px;
+}
+
+.conversation-panel,
+.inspector {
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(22px);
+}
+
+.conversation-panel {
+  display: grid;
+  height: 100%;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  overflow: hidden;
+}
+
+.mode-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  padding: 12px;
+  overflow-x: auto;
+}
+
+.mode {
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mode.active {
+  border-color: rgba(216, 202, 130, 0.45);
+  background: rgba(216, 202, 130, 0.17);
+  color: white;
+}
+
+.conversation {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 14px;
+  overflow: auto;
+  padding: 18px;
+}
+
+.message {
+  max-width: min(740px, 92%);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.message.user {
+  align-self: flex-end;
+  background: rgba(216, 202, 130, 0.14);
+}
+
+.message.assistant {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.message.blocked {
+  border-color: rgba(255, 138, 138, 0.36);
+  background: rgba(255, 87, 87, 0.12);
+}
+
+.message small {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.message-body {
+  white-space: pre-wrap;
+}
+
+.message.typing .message-body::after {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 1em;
+  margin-left: 3px;
+  border-right: 2px solid var(--gold);
+  vertical-align: -2px;
+  animation: cursor-blink 0.9s steps(2, end) infinite;
+}
+
+@keyframes cursor-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.samples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding: 12px;
+}
+
+.samples button,
+.composer button {
+  cursor: pointer;
+}
+
+.samples button:hover,
+.composer button:hover,
+.mode:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+}
+
+.composer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding: 12px;
+}
+
+.composer textarea {
+  min-height: 76px;
+  resize: vertical;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--text);
+  padding: 12px;
+  outline: none;
+}
+
+.composer textarea:focus {
+  border-color: rgba(216, 202, 130, 0.6);
+}
+
+.composer button {
+  background: var(--gold);
+  color: #151513;
+  font-weight: 800;
+}
+
+.inspector {
+  display: flex;
+  overflow: auto;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px;
+}
+
+.inspector section {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 18px;
+}
+
+.inspector section:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.metric-grid div,
+.finding {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+  padding: 10px;
+}
+
+.metric-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.metric-grid strong {
+  display: block;
+  min-width: 0;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+  color: white;
+  font-size: 14px;
+}
+
+.findings {
+  margin-top: 12px;
+}
+
+.findings.empty,
+.exposure.empty {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.exposure {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+  padding: 10px;
+}
+
+.exposure p {
+  margin: 0;
+  color: var(--soft);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.exposure pre {
+  max-height: 180px;
+  overflow: auto;
+  margin: 10px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.24);
+  padding: 10px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.finding + .finding {
+  margin-top: 10px;
+}
+
+.finding header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.finding b {
+  font-size: 13px;
+}
+
+.finding span {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 3px 7px;
+  color: var(--gold);
+  font-size: 11px;
+}
+
+.finding p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.explain-list {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+@media (max-width: 980px) {
+  body {
+    overflow: auto;
+  }
+
+  .app-shell {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+    grid-template-columns: 1fr;
+  }
+
+  .dock {
+    position: static;
+    height: auto;
+    flex-direction: row;
+    justify-content: center;
+    padding: 12px;
+  }
+
+  .workspace {
+    height: auto;
+    min-height: 100vh;
+    padding: 16px;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .chat-layout {
+    height: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .conversation-panel {
+    min-height: 680px;
+  }
+}
+
+@media (max-width: 640px) {
+  .composer {
+    grid-template-columns: 1fr;
+  }
+}
