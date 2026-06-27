@@ -704,42 +704,7 @@ export function TemplateNav() {
           </div>
 
           <div className="mt-auto space-y-3">
-<<<<<<< HEAD
-            <div className="flex items-center justify-between rounded-[18px] border border-white/[0.07] bg-[#16171d] p-2">
-              {quickLinks.map((item) => {
-                const active = isActiveHref(item.href);
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    aria-label={item.label}
-                    title={item.label}
-                    className={
-                      active
-                        ? "flex h-9 w-9 items-center justify-center rounded-full bg-[#7067ff] text-white shadow-[0_10px_22px_rgba(112,103,255,0.38)] transition hover:bg-[#8276ff]"
-                        : "flex h-9 w-9 items-center justify-center rounded-[13px] text-white/46 transition hover:bg-white/[0.06] hover:text-white"
-                    }
-                  >
-                    <Iconify icon={item.icon} width="17" />
-                  </Link>
-                );
-              })}
-              <Link
-                href="/security"
-                aria-current={isActiveHref("/security") ? "page" : undefined}
-                aria-label="安全扫描"
-                title="安全扫描"
-                className={
-                  isActiveHref("/security")
-                    ? "flex h-9 w-9 items-center justify-center rounded-full bg-[#7067ff] text-white shadow-[0_10px_22px_rgba(112,103,255,0.38)] transition hover:bg-[#8276ff]"
-                    : "flex h-9 w-9 items-center justify-center rounded-[13px] text-white/46 transition hover:bg-white/[0.06] hover:text-white"
-                }
-              >
-                <Iconify icon="solar:moon-fog-linear" width="18" />
-              </Link>
-            </div>
+            <SidebarUtilities />
             <Link
               href="/prompts"
               aria-current={isActiveHref("/prompts") ? "page" : undefined}
@@ -756,11 +721,6 @@ export function TemplateNav() {
                   ? "mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#8276ff] text-white shadow-[0_12px_26px_rgba(112,103,255,0.50)]"
                   : "mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#7067ff] text-white shadow-[0_12px_26px_rgba(112,103,255,0.42)]"
               }>
-=======
-            <SidebarUtilities />
-            <Link href="/prompts" className="flex h-[120px] flex-col items-center justify-center rounded-[24px] border border-dashed border-white/18 bg-[#15161b]/72 text-center transition hover:border-[#7067ff]/55 hover:bg-[#1c1d26]">
-              <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#7067ff] text-white shadow-[0_12px_26px_rgba(112,103,255,0.42)]">
->>>>>>> 2ea566b (feat(web): 完善界面功能)
                 <Iconify icon="solar:add-circle-linear" width="21" />
               </span>
               <span className="text-sm font-medium text-white">新建提示词</span>
