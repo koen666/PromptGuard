@@ -11,6 +11,7 @@
     "db:generate": "pnpm --filter @promptguard/core db:generate",
     "seed": "pnpm --filter @promptguard/core seed",
     "cli": "pnpm --filter @promptguard/cli start",
+    "pmg": "pnpm --filter @promptguard/cli start",
     "typecheck": "pnpm --filter @promptguard/core build && pnpm -r typecheck"
   },
   "engines": {

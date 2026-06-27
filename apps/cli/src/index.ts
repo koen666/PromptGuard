@@ -69,7 +69,7 @@ const sessionFile = path.resolve(__dirname, "../../../.promptguard-session.json"
 
 const program = new Command();
 
-program.name("promptguard").description("PromptGuard CLI").version("0.1.0", "-V, --cli-version");
+program.name("pmg").description("PromptGuard CLI").version("0.1.0", "-V, --cli-version");
 
 function readCliToken() {
   if (!fs.existsSync(sessionFile)) return undefined;
