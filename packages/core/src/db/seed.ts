@@ -6,7 +6,8 @@ import { approveReview, startGrayRelease, submitReview } from "../services/relea
 import { runSecurityScan } from "../services/security.js";
 
 async function seed() {
-  runMigrations();
+  process.env.LLM_PROVIDER = process.env.PROMPTGUARD_SEED_LLM_PROVIDER ?? "mock";
+  await runMigrations();
 
   console.log("Seeding demo data...");
 

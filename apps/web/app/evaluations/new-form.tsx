@@ -105,10 +105,10 @@ export function NewEvaluationForm({
     <div className="grid gap-5 lg:grid-cols-2">
       <Panel>
         <h3 className="text-lg font-semibold text-white">单版本评测</h3>
-        <p className="mt-1 text-sm text-white/45">选择 Prompt 版本和数据集，系统会运行 Mock 模型并生成报告。</p>
+        <p className="mt-1 text-sm text-white/45">选择提示词版本和数据集，系统会运行模拟模型并生成报告。</p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div>
-            <FieldLabel>Prompt</FieldLabel>
+            <FieldLabel>提示词</FieldLabel>
             <PromptSelect prompts={prompts} promptId={promptId} setPromptId={setPromptId} />
           </div>
           <div>
@@ -132,7 +132,7 @@ export function NewEvaluationForm({
         <p className="mt-1 text-sm text-white/45">同一数据集下比较基准版本和候选版本的分数、通过率和延迟。</p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div className="md:col-span-2">
-            <FieldLabel>Prompt</FieldLabel>
+            <FieldLabel>提示词</FieldLabel>
             <PromptSelect prompts={prompts} promptId={comparePromptId} setPromptId={setComparePromptId} />
           </div>
           <div>

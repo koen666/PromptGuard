@@ -124,7 +124,7 @@ export function ReleaseActions({ promptId, currentTrafficPercent = 10, compact =
   return (
     <Panel>
       <h3 className="text-lg font-semibold text-white">活跃灰度操作</h3>
-      <p className="mt-1 text-sm text-white/45">扩容流量、全量发布或回滚当前 production 策略。</p>
+      <p className="mt-1 text-sm text-white/45">扩容流量、全量发布或回滚当前生产环境策略。</p>
       <div className="mt-4 grid gap-4 md:grid-cols-[1fr_160px]">
         <div>
           <FieldLabel>发布说明</FieldLabel>
@@ -200,10 +200,10 @@ export function NewReleaseForm({ prompts }: { prompts: PromptItem[] }) {
   return (
     <Panel>
       <h3 className="text-lg font-semibold text-white">新建灰度</h3>
-      <p className="mt-1 text-sm text-white/45">选择已通过审核和安全门禁的版本，创建 production 灰度策略。</p>
+      <p className="mt-1 text-sm text-white/45">选择已通过审核和安全门禁的版本，创建生产环境灰度策略。</p>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         <div>
-          <FieldLabel>Prompt</FieldLabel>
+          <FieldLabel>提示词</FieldLabel>
           <Select value={promptId} onChange={(event) => changePrompt(event.target.value)}>
             {prompts.map((prompt) => (
               <option key={prompt.id} value={prompt.id}>{prompt.name} · {prompt.versionCount} 个版本</option>

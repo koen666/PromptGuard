@@ -38,7 +38,7 @@ export function CreatePromptForm() {
     <Panel>
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
         <div>
-          <h3 className="text-lg font-semibold text-white">新建 Prompt</h3>
+          <h3 className="text-lg font-semibold text-white">新建提示词</h3>
           <p className="mt-1 text-sm text-white/45">录入名称、正文和标签后自动生成 v1 快照。</p>
         </div>
         <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/45">
@@ -52,16 +52,16 @@ export function CreatePromptForm() {
         </div>
         <div>
           <FieldLabel>业务场景</FieldLabel>
-          <Input placeholder="这个 Prompt 的使用场景" value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1" />
+          <Input placeholder="这个提示词的使用场景" value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1" />
         </div>
         <div className="md:col-span-2">
           <FieldLabel>标签</FieldLabel>
-          <Input placeholder="customer-service, production" value={tags} onChange={(e) => setTags(e.target.value)} className="mt-1" />
+          <Input placeholder="客服, 生产" value={tags} onChange={(e) => setTags(e.target.value)} className="mt-1" />
         </div>
         <div className="md:col-span-2">
-          <FieldLabel>系统 Prompt 内容</FieldLabel>
+          <FieldLabel>系统提示词内容</FieldLabel>
           <Textarea
-            placeholder="在这里写入系统 Prompt 内容..."
+            placeholder="在这里写入系统提示词内容..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={10}

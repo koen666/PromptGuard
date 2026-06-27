@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "bin": {
-    "promptguard": "./dist/index.js"
+    "promptguard": "./dist/index.js",
+    "pmg": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",

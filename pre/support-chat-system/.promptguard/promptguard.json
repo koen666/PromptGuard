@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "databaseUrl": "mysql://env/PROMPTGUARD_DB",
+  "promptsDir": ".promptguard/prompts",
+  "datasetsDir": ".promptguard/datasets",
+  "defaultEnvironment": "production",
+  "project": {
+    "id": "pg_support-chat-system_05be3256",
+    "name": "support-chat-system",
+    "defaultBranch": "main"
+  },
+  "trackedPrompts": [],
+  "remote": {
+    "name": "origin",
+    "provider": "mysql",
+    "host": "8.138.92.166",
+    "port": 3306,
+    "user": "koen",
+    "database": "PROMPTGUARD",
+    "passwordEnv": "PROMPTGUARD_REMOTE_DB_PASSWORD"
+  }
+}

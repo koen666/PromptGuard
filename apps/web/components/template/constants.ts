@@ -18,6 +18,7 @@ export const TEMPLATE = {
 export const NAV_LINKS = [
   { href: "/", label: "总览", icon: "solar:home-2-linear" },
   { href: "/prompts", label: "资产库", icon: "solar:archive-linear" },
+  { href: "/project", label: "项目", icon: "solar:cloud-upload-linear" },
   { href: "/datasets", label: "数据集", icon: "solar:database-linear" },
   { href: "/evaluations", label: "评测", icon: "solar:chart-2-linear" },
   { href: "/security", label: "安全", icon: "solar:shield-check-linear" },

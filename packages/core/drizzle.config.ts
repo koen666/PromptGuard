@@ -1,15 +1,14 @@
 import { defineConfig } from "drizzle-kit";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = process.env.DATABASE_URL ?? path.join(__dirname, "../../data/promptguard.db");
 
 export default defineConfig({
   schema: "./src/db/schema.ts",
   out: "./drizzle",
-  dialect: "sqlite",
+  dialect: "mysql",
   dbCredentials: {
-    url: dbPath.startsWith("./") ? path.resolve(__dirname, "../..", dbPath.slice(2)) : dbPath,
+    host: process.env.PROMPTGUARD_DB_HOST ?? process.env.PROMPTGUARD_REMOTE_DB_HOST ?? "127.0.0.1",
+    port: Number(process.env.PROMPTGUARD_DB_PORT ?? process.env.PROMPTGUARD_REMOTE_DB_PORT ?? 3306),
+    user: process.env.PROMPTGUARD_DB_USER ?? process.env.PROMPTGUARD_REMOTE_DB_USER ?? "root",
+    password: process.env.PROMPTGUARD_DB_PASSWORD ?? process.env.PROMPTGUARD_REMOTE_DB_PASSWORD ?? "",
+    database: process.env.PROMPTGUARD_DB_NAME ?? process.env.PROMPTGUARD_REMOTE_DB_NAME ?? "PROMPTGUARD",
   },
 });

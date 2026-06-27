@@ -14,6 +14,7 @@
 
 - [功能概览](#功能概览)
 - [SDK 用法](#sdk-用法)
+- [pre SDK 对照演示](#pre-sdk-对照演示)
 - [环境要求](#环境要求)
 - [从零复现（推荐流程）](#从零复现推荐流程)
 - [一键安装脚本（Windows）](#一键安装脚本windows)
@@ -91,7 +92,79 @@ print(response.output)
 pip install -e packages/python
 ```
 
-Python SDK 默认读取同一份 SQLite 数据库。可通过 `DATABASE_URL` 或 `PROMPTGUARD_ROOT` 指向业务项目。
+Python SDK 与 TypeScript SDK / CLI / Web 统一读取 `PROMPTGUARD_DB_*` 指向的服务器 MySQL 资产库。
+
+---
+
+## pre SDK 对照演示
+
+`pre/support-chat-system` 是一个独立的小业务项目，用来演示“裸调用模型”和“接入 PromptGuard SDK”两种写法的差异。
+
+### 演示目标
+
+- **直接调用模型**：业务代码把 PM 写成普通 `systemPrompt` / `BUSINESS_PROMPT` 变量，再拼进 `messages`。提示词逆向样例会展示 PM 被套出的结果。
+- **使用 PromptGuard SDK**：业务代码通过 `GuardedPrompt.load()` 从 PromptGuard 资产库加载 PM，并由 SDK 执行输入拦截、protected runtime 包装和输出泄露检测。
+
+### 运行方式
+
+先在仓库根目录构建 core：
+
+```powershell
+pnpm --filter @promptguard/core build
+```
+
+启动 pre demo：
+
+```powershell
+cd pre/support-chat-system
+node server.mjs
+```
+
+浏览器打开：
+
+```text
+http://localhost:4317
+```
+
+### 代码落点
+
+| 文件 | 作用 |
+|------|------|
+| `pre/support-chat-system/server.mjs` | 后端 demo 服务，包含 direct / sdk 两条调用链 |
+| `pre/support-chat-system/public/index.html` | 两种模式切换、样例按钮和右侧状态面板 |
+| `pre/support-chat-system/public/app.js` | 发送消息、展示 blocked / PM Sent / findings / 打字机效果 |
+| `pre/support-chat-system/public/styles.css` | 桌面式深色 UI 和毛玻璃侧栏样式 |
+
+direct 模式的核心代码：
+
+```js
+const systemPrompt = BUSINESS_PROMPT;
+const messages = [
+  { role: "system", content: systemPrompt },
+  { role: "user", content: message },
+];
+```
+
+SDK 模式的核心代码：
+
+```js
+const prompt = await GuardedPrompt.load("pre-售后对话助手", {
+  environment: "production",
+  routeKey: "pre-demo-user",
+});
+
+const result = await prompt.run(message, {
+  blockUnsafeInput: true,
+  runner: realModelRunner,
+});
+```
+
+同一条逆向样例在两个模式下的对照：
+
+| 模式 | 结果 |
+|------|------|
+| 直接调用模型 | `PM Sent = yes`，PM 会以普通变量形式被展示出来 |
+| PromptGuard SDK | `Blocked = yes`，`PM Sent = no`，模型调用前被 SDK 拦截 |
 
 ---
 
@@ -103,7 +176,7 @@ Python SDK 默认读取同一份 SQLite 数据库。可通过 `DATABASE_URL` 或
 | **pnpm** | 9+（仓库锁定 `pnpm@9.15.4`） |
 | **操作系统** | Windows / macOS / Linux 均可 |
 
-> **Windows 注意**：`better-sqlite3` 为原生模块，首次 `pnpm install` 需要能编译 C++（通常 Node 安装包已带构建工具；若失败，可安装 [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) 并勾选「使用 C++ 的桌面开发」）。
+> 当前主库使用 MySQL，请确保 `.env` 中的 `PROMPTGUARD_DB_*` 能连接到服务器数据库。
 
 检查版本：
 
@@ -137,7 +210,7 @@ pnpm install
 copy .env.example .env
 ```
 
-默认无需改即可运行（Mock LLM + 本地 SQLite）。需要真实模型时再改 `.env`。
+填写 `.env` 中的 `PROMPTGUARD_DB_*` 后即可连接服务器 MySQL。需要真实模型时再配置 `LLM_PROVIDER` 与对应 API Key。
 
 ### 3. 数据库迁移
 
@@ -145,7 +218,7 @@ copy .env.example .env
 pnpm db:migrate
 ```
 
-会在 `data/` 下创建 `promptguard.db`（该目录已在 `.gitignore` 中，不会随 zip 分发，需本地执行迁移生成）。
+会在 `PROMPTGUARD_DB_NAME` 指定的 MySQL 数据库里创建账号、Prompt、评测、安全扫描、审核、发布、审计和项目同步相关表。
 
 ### 4. （可选）灌入演示数据
 
@@ -194,10 +267,28 @@ PowerShell 在项目根目录执行：
 | `pnpm dev` | 编译 core + 启动 Next.js 开发服（:3000） |
 | `pnpm build` | 全仓 TypeScript / Next 生产构建 |
 | `pnpm typecheck` | 各包类型检查 |
-| `pnpm db:generate` | 修改 schema 后生成 Drizzle 迁移（开发用） |
-| `pnpm db:migrate` | 应用迁移到 SQLite |
-| `pnpm seed` | 重置并写入演示数据 |
-| `pnpm cli -- <子命令>` | 调用 CLI |
+| `pnpm db:generate` | 修改 Drizzle schema 后生成参考迁移（开发用） |
+| `pnpm db:migrate` | 应用迁移到服务器 MySQL |
+| `pnpm seed` | 写入演示数据 |
+| `pnpm pmg -- <子命令>` | 开发态调用 PromptGuard CLI |
+| `pnpm install:pmg` | 将 `pmg` 安装/链接为本机命令 |
+
+CLI 包构建 / 安装后会暴露两个命令：`pmg`（推荐短命令）和 `promptguard`（完整命名）。在 monorepo 开发态可使用 `pnpm pmg -- ...`；执行下面命令后，就可以像 `git`、`brew` 一样直接使用 `pmg ...`：
+
+```powershell
+pnpm install
+pnpm install:pmg
+pmg --help
+pmg prompt list
+```
+
+`pnpm install:pmg` 会构建 CLI 并用 `npm link` 暴露本机命令，适合本机演示和开发。真正发布到公共包管理器时，可以进一步做成 `npm install -g @promptguard/cli` 或 Homebrew tap。
+
+macOS / zsh 下如果命令缓存没刷新，再执行一次：
+
+```powershell
+hash -r
+```
 
 **Web 路由一览**
 
@@ -207,6 +298,7 @@ PowerShell 在项目根目录执行：
 | `/prompts` | Prompt 列表 |
 | `/prompts/[id]` | Prompt 详情 / 编辑 |
 | `/prompts/[id]/diff` | 版本 diff |
+| `/project` | 项目 Prompt 扫描与 remote 同步状态 |
 | `/datasets` | 数据集 |
 | `/evaluations` | 评测任务 |
 | `/reports/[id]` | 评测报告 |
@@ -234,7 +326,18 @@ pnpm --filter @promptguard/web start
 `.env` 字段（见 `.env.example`）：
 
 ```env
-DATABASE_URL=./data/promptguard.db
+PROMPTGUARD_DB_HOST=
+PROMPTGUARD_DB_PORT=3306
+PROMPTGUARD_DB_USER=
+PROMPTGUARD_DB_PASSWORD=
+PROMPTGUARD_DB_NAME=PROMPTGUARD
+
+PROMPTGUARD_REMOTE_DB_HOST=
+PROMPTGUARD_REMOTE_DB_PORT=3306
+PROMPTGUARD_REMOTE_DB_USER=
+PROMPTGUARD_REMOTE_DB_PASSWORD=
+PROMPTGUARD_REMOTE_DB_NAME=PROMPTGUARD
+
 LLM_PROVIDER=mock          # mock | openai | anthropic | ollama
 OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
@@ -253,6 +356,39 @@ ANTHROPIC_MODEL=claude-3-5-haiku-20241022
 - `OPENAI_BASE_URL` 支持 OpenAI-compatible 网关；未以 `/v1` 结尾时系统会自动拼接 `/v1`。
 - `OPENAI_WIRE_API=responses` 时会请求 `/v1/responses`，并在 `OPENAI_DISABLE_RESPONSE_STORAGE=true` 时发送 `store=false`。
 - `OPENAI_FALLBACK_TO_MOCK=false` 表示真实模型调用失败时直接报错，避免安全审核误用 mock 结果。
+- `PROMPTGUARD_DB_*` 是 Web / CLI / SDK / 账号体系 / 资产库的主数据库配置。
+- `PROMPTGUARD_REMOTE_DB_*` 用于 `pmg project remote/status/push/pull`。通常与 `PROMPTGUARD_DB_*` 指向同一个服务器库。真实密码只放本地 `.env`，不要提交到 Git。
+
+### Project remote 同步
+
+PromptGuard 的项目组织方式类似 Git：业务项目里有 `.promptguard/promptguard.json` 作为本地配置，`pmg project scan` 会扫描代码里的 `GuardedPrompt.load()` / `GuardedPrompt.create()` 引用，`pmg project status` 显示本地资产和远端状态，`pmg project push/pull` 把 Prompt 资产同步到 MySQL remote。当前 Web、CLI、账号、资产库也使用同一个服务器 MySQL。
+
+首次配置：
+
+```powershell
+copy .env.example .env
+# 在 .env 里填写 PROMPTGUARD_DB_* 与 PROMPTGUARD_REMOTE_DB_*
+
+cd pre/support-chat-system
+pmg project init --name support-chat-system
+pmg project scan
+pmg project remote set --from-env
+pmg project status
+pmg project push
+```
+
+`pmg project push` 会自动在远端 MySQL 创建以下表：
+
+- `promptguard_projects`
+- `promptguard_prompt_assets`
+
+之后日常流程就是：
+
+```powershell
+pmg project status   # 看有哪些 PM、哪些已同步、哪些有变更
+pmg project push     # 推送本地 Prompt 资产到 remote
+pmg project pull     # 从 remote 拉取 Prompt 资产到本地库
+```
 
 ---
 
@@ -270,15 +406,15 @@ ANTHROPIC_MODEL=claude-3-5-haiku-20241022
 CLI 等价示例：
 
 ```powershell
-pnpm cli -- init
-pnpm cli -- project init --sample
-pnpm cli -- prompt list
-pnpm cli -- prompt import --file .promptguard/prompts/customer-service.md --tags customer-service,production
-pnpm cli -- prompt run customer-service --input "我的订单什么时候到？"
-pnpm cli -- security scan --prompt <promptId> --version 1
-pnpm cli -- security optimize --scan <scanId> --apply
-pnpm cli -- eval run --prompt <promptId> --version 1 --dataset <datasetId>
-pnpm cli -- report generate --run <runId> --format html
+pmg init
+pmg project init --sample
+pmg prompt list
+pmg prompt import --file .promptguard/prompts/customer-service.md --tags customer-service,production
+pmg prompt run customer-service --input "我的订单什么时候到？"
+pmg security scan --prompt <promptId> --version 1
+pmg security optimize --scan <scanId> --apply
+pmg eval run --prompt <promptId> --version 1 --dataset <datasetId>
+pmg report generate --run <runId> --format html
 ```
 
 ---
@@ -286,21 +422,34 @@ pnpm cli -- report generate --run <runId> --format html
 ## CLI 常用命令
 
 ```powershell
-pnpm cli -- init                          # 初始化数据库（通常用 db:migrate 即可）
-pnpm cli -- project init --sample          # 初始化 .promptguard 项目目录
-pnpm cli -- prompt list
-pnpm cli -- prompt create --name "..." --content "..."
-pnpm cli -- prompt create --name "..." --file .promptguard/prompts/foo.md
-pnpm cli -- prompt import --file .promptguard/prompts/foo.md --tags prod,agent
-pnpm cli -- prompt export <id> --file .promptguard/prompts/foo.md
-pnpm cli -- prompt save <id> --file .promptguard/prompts/foo.md --changelog "tighten policy"
-pnpm cli -- prompt run <id-or-name> --input "hello"
-pnpm cli -- dataset list
-pnpm cli -- eval run --prompt <id> --version 1 --dataset <id>
-pnpm cli -- security scan --prompt <id> --version 1
-pnpm cli -- review submit --prompt <id> --version 1
-pnpm cli -- release start --prompt <id> --prompt-version 1 --percent 10 --note "canary"
-pnpm cli -- report generate --run <id> --format html
+pmg --help                         # 查看顶层命令
+pmg init                           # 初始化数据库（通常用 db:migrate 即可）
+
+pmg auth register -u <username>    # 注册本地用户
+pmg auth login -u <username>       # 登录并保存 CLI session
+pmg auth whoami                    # 查看当前登录用户
+pmg auth logout                    # 退出登录
+
+pmg project init --sample          # 初始化 .promptguard 项目目录
+pmg project scan                   # 扫描代码中的 GuardedPrompt.load/create
+pmg project status                 # 查看项目 PM、本地版本、remote 同步状态
+pmg project remote set --from-env  # 从 PROMPTGUARD_REMOTE_DB_* 配置 MySQL remote
+pmg project push                   # 推送本地 Prompt 资产到 remote
+pmg project pull                   # 从 remote 拉取 Prompt 资产到本地库
+
+pmg prompt list
+pmg prompt create --name "..." --content "..."
+pmg prompt create --name "..." --file .promptguard/prompts/foo.md
+pmg prompt import --file .promptguard/prompts/foo.md --tags prod,agent
+pmg prompt export <id> --file .promptguard/prompts/foo.md
+pmg prompt save <id> --file .promptguard/prompts/foo.md --changelog "tighten policy"
+pmg prompt run <id-or-name> --input "hello"
+pmg dataset list
+pmg eval run --prompt <id> --version 1 --dataset <id>
+pmg security scan --prompt <id> --version 1
+pmg review submit --prompt <id> --version 1
+pmg release start --prompt <id> --prompt-version 1 --percent 10 --note "canary"
+pmg report generate --run <id> --format html
 ```
 
 加 `--help` 查看各子命令参数。
@@ -318,14 +467,15 @@ PromptGuard/
 │   │       └── template/    # 桌面式应用外壳与通用组件
 │   └── cli/                 # Commander.js CLI
 ├── packages/
-│   ├── core/                # SDK 运行时、业务逻辑、SQLite、Drizzle、LLM 适配器
+│   ├── core/                # SDK 运行时、业务逻辑、MySQL、Drizzle、LLM 适配器
 │   │   ├── src/
 │   │   └── drizzle/         # SQL 迁移（0000_init.sql）
 │   └── python/              # Python SDK：from promptguard import GuardedPrompt
+├── pre/
+│   └── support-chat-system/ # SDK 接入对照 demo：direct 模式 vs PromptGuard SDK 模式
 ├── scripts/
 │   ├── setup.ps1            # Windows 一键安装
 │   └── package.ps1          # 打 zip 交付包
-├── data/                    # SQLite（本地生成，不提交 git）
 ├── reports/                 # 导出报告（本地生成）
 ├── generated-page.html      # 历史 UI 参考源文件
 ├── .env.example
@@ -337,7 +487,7 @@ PromptGuard/
 
 ```
 apps/web (UI + API) ──┐
-apps/cli (命令行)  ──┼──► @promptguard/core ──► SQLite (data/promptguard.db)
+apps/cli (命令行)  ──┼──► @promptguard/core ──► MySQL (PROMPTGUARD)
 packages/python SDK ─┘                         └──► LLM 适配器 (mock / openai / anthropic)
 ```
 
@@ -347,7 +497,7 @@ packages/python SDK ─┘                         └──► LLM 适配器 (m
 
 - **Monorepo**：pnpm workspace · TypeScript
 - **Web**：Next.js 15 · React 19 · Tailwind CSS 4 · Recharts · Iconify
-- **数据**：SQLite · Drizzle ORM · better-sqlite3
+- **数据**：MySQL · Drizzle ORM · mysql2
 - **CLI**：Commander.js
 
 ---
@@ -379,12 +529,6 @@ taskkill /PID <PID> /F
 $env:PORT=3001; pnpm --filter @promptguard/web dev
 ```
 
-### `better-sqlite3` 安装失败
-
-- 确认 Node 为 20+ 64 位
-- Windows 安装 Visual Studio Build Tools（C++ 工作负载）
-- 删除 `node_modules` 后重新 `pnpm install`
-
 ### 数据库为空 / 表不存在
 
 ```powershell
@@ -396,7 +540,7 @@ pnpm seed
 
 ```powershell
 pnpm db:generate   # 生成新迁移文件
-pnpm db:migrate    # 应用到本地库
+pnpm db:migrate    # 应用到服务器 MySQL
 ```
 
 ## 打包交付说明
@@ -418,10 +562,10 @@ pnpm db:migrate    # 应用到本地库
 会在**上一级目录**生成 `PromptGuard-handover.zip`，已排除：
 
 - `node_modules`、`.next`、`dist`
-- `data/`、`reports/`、`.env`
+- `reports/`、`.env`
 - 各类日志与系统缓存
 
-**zip 内不含数据库与依赖**，接收方必须本地执行 `pnpm install` 与 `pnpm db:migrate`。
+**zip 内不含依赖与私密配置**，接收方必须本地执行 `pnpm install`，配置 `.env`，再执行 `pnpm db:migrate`。
 
 ### 若通过 Git 交接
 

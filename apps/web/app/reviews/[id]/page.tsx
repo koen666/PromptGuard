@@ -4,7 +4,7 @@ import { getEvaluationRun, getPrompt, getReview, getSecurityScan } from "@prompt
 import { loadEnv } from "@/lib/env";
 import { formatDate } from "@/lib/utils";
 import { Iconify } from "@/components/template/iconify";
-import { Panel, StatusPill, TemplateListItem, TemplateListSection, TemplatePageWrap, TemplateSectionHeader } from "@/components/template/sections";
+import { Panel, StatusPill, TemplateListItem, TemplateListSection, TemplatePageWrap, TemplateSectionHeader, getStatusLabel } from "@/components/template/sections";
 import { ReviewActions } from "../actions";
 
 loadEnv();
@@ -25,9 +25,9 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
     <>
       <TemplatePageWrap>
         <TemplateSectionHeader
-          tag="Review"
+          tag="审核"
           title="审核详情"
-          titleMuted={review.status}
+          titleMuted={getStatusLabel(review.status)}
           action={
             <Link href="/reviews" className="inline-flex items-center gap-2 rounded-md border border-white/15 px-4 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white">
               <Iconify icon="solar:arrow-left-linear" width="17" />
@@ -40,9 +40,9 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
           <Panel>
             <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
               <div className="min-w-0">
-                <div className="text-xs uppercase tracking-[0.14em] text-white/35">Prompt Asset</div>
+                <div className="text-xs uppercase tracking-[0.14em] text-white/35">提示词资产</div>
                 <h2 className="mt-2 truncate text-2xl font-semibold text-white">{prompt?.name ?? review.promptId}</h2>
-                <p className="mt-2 text-sm text-white/45">版本 v{version?.versionNumber ?? "-"} · {version?.status ?? "unknown"}</p>
+                <p className="mt-2 text-sm text-white/45">版本 v{version?.versionNumber ?? "-"} · {getStatusLabel(version?.status ?? "unknown")}</p>
               </div>
               <StatusPill value={review.status} />
             </div>
@@ -82,9 +82,9 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
           name="评测报告"
           sub={evaluation?.status ?? "missing"}
           specs={[
-            { label: "Run", value: evaluation?.id ?? "—" },
+            { label: "任务", value: evaluation?.id ?? "—" },
             { label: "均分", value: evaluation?.avgScore?.toFixed(2) ?? "—" },
-            { label: "Provider", value: evaluation?.provider ?? "—" },
+            { label: "提供商", value: evaluation?.provider ?? "—" },
             { label: "时间", value: evaluation ? formatDate(evaluation.createdAt) : "—" },
           ]}
           tier={evaluation?.status ?? "missing"}
@@ -96,9 +96,9 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
           name="安全扫描"
           sub={security?.passed ? "passed" : "risk"}
           specs={[
-            { label: "Scan", value: security?.id ?? "—" },
+            { label: "扫描", value: security?.id ?? "—" },
             { label: "风险分", value: security?.riskScore?.toFixed(2) ?? "—" },
-            { label: "Provider", value: security?.provider ?? "—" },
+            { label: "提供商", value: security?.provider ?? "—" },
             { label: "发现", value: String(security?.findings.length ?? 0) },
           ]}
           tier={security?.passed ? "Pass" : "Fail"}
@@ -107,10 +107,10 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
           href={prompt ? `/prompts/${prompt.id}/diff` : undefined}
           index={2}
           icon="solar:document-text-linear"
-          name="版本 Diff"
+          name="版本差异"
           sub={version ? `v${version.versionNumber}` : "missing"}
           specs={[
-            { label: "Prompt", value: prompt?.id ?? review.promptId },
+            { label: "提示词", value: prompt?.id ?? review.promptId },
             { label: "版本", value: version ? String(version.versionNumber) : "—" },
             { label: "状态", value: version?.status ?? "—" },
             { label: "变更说明", value: version?.changelog ?? "—" },

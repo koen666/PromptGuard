@@ -2,7 +2,7 @@ import Link from "next/link";
 import { loadEnv } from "@/lib/env";
 import { formatDate } from "@/lib/utils";
 import { Iconify } from "@/components/template/iconify";
-import { StatusPill } from "@/components/template/sections";
+import { StatusPill, getStatusLabel } from "@/components/template/sections";
 import {
   getDashboardStats,
   getPrompt,
@@ -16,12 +16,7 @@ import {
 
 loadEnv();
 
-const quickActions = [
-  { href: "/prompts", label: "导入资产", icon: "solar:archive-up-linear" },
-  { href: "/evaluations", label: "运行评测", icon: "solar:play-circle-linear" },
-  { href: "/security", label: "安全扫描", icon: "solar:shield-warning-linear" },
-  { href: "/releases", label: "灰度发布", icon: "solar:rocket-2-linear" },
-];
+const swatches = ["#ff66c4", "#ffe36e", "#70a5ff", "#8276ff", "#55e18e"];
 
 function Panel({
   children,
@@ -31,7 +26,7 @@ function Panel({
   className?: string;
 }) {
   return (
-    <section className={`rounded-lg border border-white/[0.09] bg-[#151819]/90 shadow-[0_16px_46px_rgba(0,0,0,0.20)] ${className}`}>
+    <section className={`overflow-hidden rounded-[30px] border border-white/[0.07] bg-[#1d1e24]/84 shadow-[0_28px_90px_rgba(0,0,0,0.35)] backdrop-blur-2xl ${className}`}>
       {children}
     </section>
   );
@@ -47,29 +42,80 @@ function PanelHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-white/[0.08] px-4 py-3">
+    <div className="flex items-start justify-between gap-4 px-5 pt-5">
       <div className="min-w-0">
-        <h2 className="text-sm font-semibold text-white">{title}</h2>
-        {sub && <p className="mt-1 truncate text-xs text-white/[0.42]">{sub}</p>}
+        <h2 className="text-lg font-semibold tracking-tight text-white">{title}</h2>
+        {sub && <p className="mt-1 truncate text-xs text-white/36">{sub}</p>}
       </div>
       {action}
     </div>
   );
 }
 
-function Metric({
-  label,
-  value,
-  tone = "text-white",
-}: {
-  label: string;
-  value: string | number;
-  tone?: string;
-}) {
+function TeamStack({ compact = false }: { compact?: boolean }) {
+  const wrapClass = compact ? "flex -space-x-1.5" : "flex -space-x-2";
+  const avatarClass = compact
+    ? "flex h-6 w-6 items-center justify-center rounded-full border border-[#1d1e24] text-[8px] font-semibold text-white shadow-[0_8px_18px_rgba(0,0,0,0.20)]"
+    : "flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#1d1e24] text-[10px] font-semibold text-white shadow-[0_8px_18px_rgba(0,0,0,0.22)]";
+  const moreClass = compact
+    ? "flex h-6 w-6 items-center justify-center rounded-full border border-[#1d1e24] bg-[#2a2c35] text-[8px] font-semibold text-white/60"
+    : "flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#1d1e24] bg-[#2a2c35] text-[10px] font-semibold text-white/60";
+
   return (
-    <div className="min-w-0">
-      <div className="text-[11px] uppercase text-white/[0.35]">{label}</div>
-      <div className={`mt-1 truncate text-2xl font-semibold ${tone}`}>{value}</div>
+    <div className={wrapClass}>
+      {["王", "杨", "陈", "李"].map((name, index) => (
+        <div
+          key={name}
+          className={avatarClass}
+          style={{ background: swatches[index] }}
+        >
+          {name}
+        </div>
+      ))}
+      <div className={moreClass}>
+        +4
+      </div>
+    </div>
+  );
+}
+
+function TaskCard({
+  tone,
+  title,
+  sub,
+  time,
+  className = "",
+}: {
+  tone: "yellow" | "blue" | "purple";
+  title: string;
+  sub: string;
+  time: string;
+  className?: string;
+}) {
+  const tones = {
+    yellow: "bg-[#ffe36e] text-[#1a1820]",
+    blue: "bg-[#7ab3ff] text-[#101826]",
+    purple: "bg-[#8276ff] text-white",
+  };
+  const pill = tone === "yellow" ? "bg-white/55 text-[#1a1820]" : "bg-white/18 text-white";
+
+  return (
+    <div className={`rounded-[20px] p-4 shadow-[0_18px_36px_rgba(0,0,0,0.25)] ${tones[tone]} ${className}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[11px] opacity-70">{sub}</div>
+          <div className="mt-1 text-base font-semibold leading-tight">{title}</div>
+        </div>
+        <Iconify icon="solar:menu-dots-bold" width="18" />
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <TeamStack compact />
+        <span className="text-[11px] font-semibold opacity-80">{time}</span>
+      </div>
+      <div className={`mt-4 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium ${pill}`}>
+        <Iconify icon="solar:document-text-linear" width="15" />
+        证据包
+      </div>
     </div>
   );
 }
@@ -88,34 +134,66 @@ function WorkRow({
   value: string;
 }) {
   return (
-    <Link href={href} className="grid grid-cols-[36px_1fr_auto] items-center gap-3 border-b border-white/[0.07] px-4 py-3 transition last:border-b-0 hover:bg-white/[0.035]">
-      <div className="flex h-9 w-9 items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.035] text-white/55">
+    <Link href={href} className="grid grid-cols-[42px_1fr_auto] items-center gap-3 border-b border-white/[0.06] px-5 py-4 transition last:border-b-0 hover:bg-white/[0.045]">
+      <div className="flex h-10 w-10 items-center justify-center rounded-[15px] border border-white/[0.08] bg-[#262832] text-white/58">
         <Iconify icon={icon} width="18" />
       </div>
       <div className="min-w-0">
-        <div className="truncate text-sm font-medium text-white">{title}</div>
-        <div className="mt-1 truncate text-xs text-white/[0.38]">{meta}</div>
+        <div className="truncate text-sm font-semibold text-white">{title}</div>
+        <div className="mt-1 truncate text-xs text-white/34">{meta}</div>
       </div>
-      <div className="max-w-[160px] truncate text-right text-sm text-white/[0.62]">{value}</div>
+      <div className="max-w-[160px] truncate text-right text-sm text-white/62">{value}</div>
     </Link>
   );
 }
 
-function AssetRow({
+function AssetCard({
   prompt,
 }: {
   prompt: Awaited<ReturnType<typeof listPrompts>>[number];
 }) {
   return (
-    <Link href={`/prompts/${prompt.id}`} className="grid gap-3 border-b border-white/[0.07] px-4 py-3 transition last:border-b-0 hover:bg-white/[0.035] md:grid-cols-[1fr_120px_160px_110px] md:items-center">
-      <div className="min-w-0">
-        <div className="truncate text-sm font-semibold text-white">{prompt.name}</div>
-        <div className="mt-1 truncate text-xs text-white/[0.38]">{prompt.tags.join(", ") || "untagged"}</div>
+    <Link href={`/prompts/${prompt.id}`} className="group grid min-h-[112px] gap-3 rounded-[24px] border border-white/[0.07] bg-[#17181e]/78 p-4 transition hover:border-[#7067ff]/42 hover:bg-[#20222c]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-sm font-semibold text-white">{prompt.name}</div>
+          <div className="mt-1 truncate text-xs text-white/34">{prompt.tags.join(", ") || "未打标签"}</div>
+        </div>
+        <StatusPill value={prompt.status} />
       </div>
-      <div className="text-sm text-white/[0.62]">v{prompt.versionCount}</div>
-      <div className="text-sm text-white/[0.42]">{formatDate(prompt.updatedAt)}</div>
-      <StatusPill value={prompt.status} />
+      <div className="mt-auto flex items-center justify-between text-xs text-white/38">
+        <span>v{prompt.versionCount}</span>
+        <span>{formatDate(prompt.updatedAt)}</span>
+      </div>
     </Link>
+  );
+}
+
+function InsightBars() {
+  const bars = [
+    [28, 52, 34, 66, 46],
+    [44, 76, 38, 58, 30],
+    [32, 48, 70, 42, 62],
+  ];
+  const colors = ["#8276ff", "#ff66c4", "#55e18e"];
+
+  return (
+    <div className="mt-5 flex h-36 items-end justify-between gap-3 rounded-[24px] border border-white/[0.06] bg-[#17181e]/78 px-4 pb-4 pt-5">
+      {Array.from({ length: 7 }).map((_, day) => (
+        <div key={day} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
+          <div className="flex h-full items-end gap-1">
+            {bars.map((set, index) => (
+              <span
+                key={index}
+                className="w-1.5 rounded-full"
+                style={{ height: `${set[day % set.length]}%`, backgroundColor: colors[index] }}
+              />
+            ))}
+          </div>
+          <span className="text-[10px] text-white/28">{"一二三四五六日"[day]}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -137,63 +215,101 @@ export default async function DashboardPage() {
   const failedScans = scans.filter((scan) => !scan.passed).length;
   const latestRun = runs[0];
   const latestScan = scans[0];
-  const previewLines = (featuredVersion?.content ?? "PromptGuard 资产库等待导入核心 Prompt。")
+  const previewLines = (featuredVersion?.content ?? "PromptGuard 资产库等待导入核心提示词。")
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
-    .slice(0, 6);
-
-  const lifecycleSteps = [
-    { label: "版本", href: "/prompts", done: prompts.length > 0 },
-    { label: "评测", href: "/evaluations", done: runs.some((run) => run.status === "completed") },
-    { label: "安全", href: "/security", done: scans.some((scan) => scan.status === "completed" && scan.passed) },
-    { label: "审核", href: "/reviews", done: reviews.some((review) => review.status === "approved") },
-    { label: "灰度", href: "/releases", done: Boolean(activeRelease) },
-    { label: "回滚", href: "/audit", done: releases.some((release) => release.status === "rolled_back") },
-  ];
-
-  const sdkSnippet = [
-    "from promptguard import GuardedPrompt",
-    `prompt = GuardedPrompt.load("${featured?.name ?? "customer-service"}", route_key=user_id)`,
-    "response = prompt.run(user_input)",
-    "return response.output",
-  ];
+    .slice(0, 5);
 
   return (
-    <main className="relative z-10 px-2 py-3 sm:px-4 lg:px-6">
+    <main className="relative z-10 px-0 py-3 sm:px-2 lg:px-5">
       <div className="mx-auto max-w-[1480px] space-y-4">
-        <section className="grid gap-4 xl:grid-cols-[1fr_360px]">
-          <Panel className="p-4 sm:p-5">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0 max-w-3xl">
-                <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#d6c985]">
-                  <Iconify icon="solar:shield-keyhole-bold-duotone" width="17" />
-                  PromptGuard Workspace
+        <section className="grid gap-4 xl:grid-cols-[1fr_320px]">
+          <Panel className="min-h-[600px]">
+            <div className="flex flex-col gap-4 border-b border-white/[0.06] px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
+                <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#8a7dff]">
+                  <span className="h-2 w-2 rounded-full bg-[#8a7dff] shadow-[0_0_18px_rgba(138,125,255,0.8)]" />
+                  团队项目
                 </div>
-                <h1 className="truncate text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                  {featured?.name ?? "Prompt 核心资产保护台"}
+                <h1 className="truncate text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                  {featured?.name ?? "PromptGuard 工作台"}
                 </h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/[0.58]">
-                  围绕 Prompt 资产建立版本、评测、安全审查、审核、灰度发布和回滚证据链。
-                </p>
+                <p className="mt-1 text-sm text-white/36">Web 控制台 / 提示词版本评审</p>
               </div>
-
-              <div className="grid min-w-[280px] grid-cols-3 gap-4 rounded-lg border border-white/[0.08] bg-black/[0.14] p-4">
-                <Metric label="Prompts" value={stats.totalPrompts} />
-                <Metric label="Datasets" value={datasets.length} />
-                <Metric label="Risks" value={failedScans} tone={failedScans ? "text-[#f2b36d]" : "text-white"} />
+              <div className="flex flex-wrap items-center gap-3">
+                <TeamStack />
+                <div className="rounded-[16px] bg-[#15161b] px-4 py-2 text-sm text-white/58">1 周</div>
               </div>
             </div>
 
-            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {quickActions.map((action) => (
-                <Link key={action.href} href={action.href} className="flex items-center justify-between rounded-lg border border-white/[0.08] bg-white/[0.035] px-3 py-3 text-sm text-white/[0.72] transition hover:bg-white/[0.07] hover:text-white">
-                  <span className="flex min-w-0 items-center gap-3">
-                    <Iconify icon={action.icon} width="18" />
-                    <span className="truncate">{action.label}</span>
-                  </span>
-                  <Iconify icon="solar:alt-arrow-right-linear" width="16" />
-                </Link>
+            <div className="grid min-h-[500px] grid-cols-1 gap-0 lg:grid-cols-[64px_repeat(4,minmax(0,1fr))]">
+              <div className="hidden border-r border-white/[0.05] pt-16 text-xs text-white/30 lg:block">
+                {["10:00", "11:00", "12:00", "13:00", "14:00"].map((time) => (
+                  <div key={time} className="h-16 px-4">{time}</div>
+                ))}
+              </div>
+
+              {[
+                { day: "26", week: "周一" },
+                { day: "27", week: "周二" },
+                { day: "28", week: "周三" },
+                { day: "29", week: "周四" },
+              ].map((item, index) => (
+                <div key={item.day} className="relative min-h-[480px] border-r border-white/[0.05] last:border-r-0">
+                  <div className="flex h-16 items-end justify-center gap-1 border-b border-white/[0.06] pb-4">
+                    <span className={index === 1 ? "text-4xl font-semibold text-white" : "text-3xl font-semibold text-white/28"}>{item.day}</span>
+                    <span className="mb-1 text-xs text-white/34">/{item.week}</span>
+                  </div>
+                  <div className="absolute inset-x-0 top-16 h-px bg-white/[0.05]" />
+                  <div className="absolute inset-x-0 top-32 h-px bg-white/[0.05]" />
+                  <div className="absolute inset-x-0 top-48 h-px bg-white/[0.05]" />
+                  <div className="absolute inset-x-0 top-64 h-px bg-white/[0.05]" />
+
+                  {index === 0 && (
+                    <>
+                      <TaskCard className="absolute left-4 right-4 top-[88px]" tone="yellow" title="团队评审" sub="设计规范" time="10:15 - 12:15" />
+                      <TaskCard className="absolute left-4 right-4 top-[252px]" tone="blue" title="提示词工作台" sub="线框稿" time="莫妮卡" />
+                    </>
+                  )}
+                  {index === 1 && (
+                    <div className="absolute left-4 right-4 top-[132px]">
+                      <TaskCard tone="purple" title="提示词优化" sub="安全策略" time="10:45 - 14:15" />
+                    </div>
+                  )}
+                  {index === 2 && (
+                    <Link href="/evaluations" className="absolute left-4 right-4 top-[88px] flex h-[180px] flex-col items-center justify-center rounded-[24px] border border-dashed border-[#55e18e]/42 bg-[#132421]/80 text-center transition hover:bg-[#183029]">
+                      <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-[#55e18e] text-[#132421] shadow-[0_14px_28px_rgba(85,225,142,0.32)]">
+                        <Iconify icon="solar:add-circle-linear" width="22" />
+                      </span>
+                      <span className="text-sm font-semibold text-white">新增任务</span>
+                      <span className="mt-1 text-xs text-white/36">运行评测</span>
+                    </Link>
+                  )}
+                  {index === 3 && (
+                    <div className="absolute left-4 right-4 top-[124px] rounded-[24px] bg-[#ff66c4] p-4 text-[#1d1420] shadow-[0_18px_38px_rgba(255,102,196,0.26)]">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="text-xs opacity-70">改版</div>
+                          <div className="text-base font-bold">提示词审核</div>
+                        </div>
+                        <Iconify icon="solar:menu-dots-bold" width="18" />
+                      </div>
+                      <div className="mt-3 text-xs font-semibold">已完成 3/5</div>
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/34">
+                        <div className="h-full w-3/5 rounded-full bg-[#1d1420]" />
+                      </div>
+                      <div className="mt-3 space-y-1 text-xs font-medium">
+                        {["调研", "线框稿", "界面设计", "原型", "对比测试"].map((item, idx) => (
+                          <div key={item} className="flex items-center gap-2">
+                            <span className={idx < 3 ? "flex h-3.5 w-3.5 items-center justify-center rounded bg-[#1d1420] text-[9px] text-white" : "h-3.5 w-3.5 rounded border border-[#1d1420]/42"}>{idx < 3 ? "✓" : ""}</span>
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </Panel>
@@ -201,116 +317,131 @@ export default async function DashboardPage() {
           <Panel>
             <PanelHeader
               title="当前运行状态"
-              sub={activeRelease ? `${activeRelease.trafficPercent}% gray release` : "route policy idle"}
+              sub={activeRelease ? `${activeRelease.trafficPercent}% 灰度发布` : "路由策略空闲"}
               action={<StatusPill value={activeRelease ? "gray" : (featured?.status ?? "ready")} />}
             />
-            <div className="space-y-4 p-4">
-              <div className="flex items-end justify-between">
-                <div>
-                  <div className="text-xs uppercase text-white/[0.34]">active version</div>
-                  <div className="mt-1 text-3xl font-semibold text-white">v{featuredVersion?.versionNumber ?? 0}</div>
+            <div className="space-y-4 p-5">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-[20px] bg-[#15161b]/82 p-3">
+                  <div className="text-xs text-white/32">提示词</div>
+                  <div className="mt-2 text-3xl font-semibold text-white">{stats.totalPrompts}</div>
                 </div>
-                <div className="text-right">
-                  <div className="text-xs uppercase text-white/[0.34]">pending</div>
-                  <div className="mt-1 text-2xl font-semibold text-white">{pendingReviews.length + failedScans}</div>
+                <div className="rounded-[20px] bg-[#15161b]/82 p-3">
+                  <div className="text-xs text-white/32">数据集</div>
+                  <div className="mt-2 text-3xl font-semibold text-white">{datasets.length}</div>
+                </div>
+                <div className="rounded-[20px] bg-[#15161b]/82 p-3">
+                  <div className="text-xs text-white/32">风险</div>
+                  <div className="mt-2 text-3xl font-semibold text-white">{failedScans}</div>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="rounded-md bg-white/[0.055] px-2 py-2 text-white/[0.58]">guard</div>
-                <div className="rounded-md bg-white/[0.055] px-2 py-2 text-white/[0.58]">route</div>
-                <div className="rounded-md bg-white/[0.055] px-2 py-2 text-white/[0.58]">audit</div>
+              <div className="rounded-[24px] border border-white/[0.07] bg-[#15161b]/72 p-4">
+                <div className="text-xs uppercase tracking-[0.12em] text-white/30">提示词预览</div>
+                <div className="mt-3 grid gap-2 font-mono text-xs leading-5 text-white/58">
+                  {previewLines.map((line, index) => (
+                    <div key={`${line}-${index}`} className="flex gap-3">
+                      <span className="text-white/24">{String(index + 1).padStart(2, "0")}</span>
+                      <span className="line-clamp-1">{line}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {swatches.map((color) => (
+                  <span key={color} className="h-8 w-8 rounded-full" style={{ backgroundColor: color }} />
+                ))}
+                <Link href="/prompts" className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.10] text-white/54">
+                  <Iconify icon="solar:add-circle-linear" width="18" />
+                </Link>
               </div>
             </div>
           </Panel>
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <section className="grid gap-4 xl:grid-cols-[1fr_360px]">
           <Panel>
-            <PanelHeader title="核心闭环" sub="版本、评测、安全、审核、灰度和回滚" action={<Link href="/reports" className="text-sm text-[#d6c985] hover:text-white">报告</Link>} />
-            <div className="grid gap-0 p-4 sm:grid-cols-6">
-              {lifecycleSteps.map((step, index) => (
-                <Link key={step.label} href={step.href} className="group relative border-b border-white/[0.07] px-3 py-4 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-white/[0.32]">0{index + 1}</span>
-                    <span className={step.done ? "h-2 w-2 rounded-full bg-[#d6c985]" : "h-2 w-2 rounded-full bg-white/[0.18]"} />
-                  </div>
-                  <div className="mt-4 text-sm font-semibold text-white group-hover:text-[#d6c985]">{step.label}</div>
-                  <div className="mt-1 text-xs text-white/[0.38]">{step.done ? "ready" : "todo"}</div>
-                </Link>
+            <PanelHeader title="最近资产" sub="提示词资产库" action={<Link href="/prompts" className="text-sm text-[#8a7dff] hover:text-white">查看全部</Link>} />
+            <div className="grid gap-3 p-5 sm:grid-cols-2">
+              {prompts.slice(0, 4).map((prompt) => (
+                <AssetCard key={prompt.id} prompt={prompt} />
               ))}
+              {prompts.length === 0 && (
+                <Link href="/prompts" className="flex min-h-[112px] items-center justify-center rounded-[24px] border border-dashed border-white/18 text-sm text-white/42">
+                  导入第一个提示词
+                </Link>
+              )}
             </div>
           </Panel>
 
           <Panel>
-            <PanelHeader title="运行队列" sub="最近评测、安全扫描和审核状态" action={<Link href="/audit" className="text-sm text-[#d6c985] hover:text-white">审计</Link>} />
+            <PanelHeader title="团队洞察" sub="+19.24" action={<span className="text-xs text-white/36">天</span>} />
+            <div className="p-5">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-[20px] bg-[#15161b]/78 p-3">
+                  <div className="text-xs text-white/34">耗时</div>
+                  <div className="mt-2 text-2xl font-semibold text-white">9h</div>
+                </div>
+                <div className="rounded-[20px] bg-[#15161b]/78 p-3">
+                  <div className="text-xs text-white/34">任务</div>
+                  <div className="mt-2 text-2xl font-semibold text-white">{runs.length + scans.length + reviews.length}</div>
+                </div>
+              </div>
+              <InsightBars />
+              <div className="mt-4 grid gap-2 text-xs text-white/44">
+                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#8276ff]" />进行中</div>
+                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#ff66c4]" />推进中</div>
+                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#55e18e]" />已完成</div>
+              </div>
+            </div>
+          </Panel>
+        </section>
+
+        <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+          <Panel>
+            <PanelHeader title="运行队列" sub="最近评测、安全扫描和审核状态" action={<Link href="/audit" className="text-sm text-[#8a7dff] hover:text-white">审计</Link>} />
             <div>
               <WorkRow
                 href="/evaluations"
                 icon="solar:chart-2-linear"
                 title="最近评测"
-                meta={latestRun ? formatDate(latestRun.createdAt) : "waiting"}
-                value={latestRun ? `${latestRun.avgScore?.toFixed(2) ?? "-"} / ${latestRun.status}` : "暂无"}
+                meta={latestRun ? formatDate(latestRun.createdAt) : "等待中"}
+                value={latestRun ? `${latestRun.avgScore?.toFixed(2) ?? "-"} / ${getStatusLabel(latestRun.status)}` : "暂无"}
               />
               <WorkRow
                 href="/security"
                 icon="solar:shield-check-linear"
                 title="安全扫描"
-                meta={latestScan ? formatDate(latestScan.createdAt) : "waiting"}
+                meta={latestScan ? formatDate(latestScan.createdAt) : "等待中"}
                 value={latestScan ? `${latestScan.riskScore?.toFixed(1) ?? "-"} / ${latestScan.passed ? "通过" : "风险"}` : "暂无"}
               />
               <WorkRow
                 href="/reviews"
                 icon="solar:clipboard-check-linear"
                 title="审核队列"
-                meta={reviews[0] ? formatDate(reviews[0].createdAt) : "idle"}
-                value={`${pendingReviews.length} pending`}
+                meta={reviews[0] ? formatDate(reviews[0].createdAt) : "空闲"}
+                value={`${pendingReviews.length} 条待审核`}
               />
             </div>
           </Panel>
-        </section>
 
-        <section className="grid gap-4 xl:grid-cols-[1fr_420px]">
           <Panel>
-            <PanelHeader title="Prompt 资产" sub="当前工作空间内的核心 Prompt" action={<Link href="/prompts" className="text-sm text-[#d6c985] hover:text-white">全部</Link>} />
-            <div>
-              {prompts.slice(0, 5).map((prompt) => (
-                <AssetRow key={prompt.id} prompt={prompt} />
-              ))}
-              {prompts.length === 0 && (
-                <Link href="/prompts" className="block px-4 py-10 text-center text-sm text-white/[0.48]">
-                  导入第一个 Prompt
-                </Link>
-              )}
-            </div>
-          </Panel>
-
-          <div className="space-y-4">
-            <Panel>
-              <PanelHeader title="SDK 接入" sub="业务代码加载灰度版本并阻断泄露" />
-              <div className="p-4">
-                <div className="rounded-lg border border-white/[0.08] bg-black/[0.22] p-3 font-mono text-xs leading-5 text-white/[0.68]">
-                  {sdkSnippet.map((line, index) => (
-                    <div key={`${line}-${index}`} className="flex gap-3">
-                      <span className="select-none text-white/25">{String(index + 1).padStart(2, "0")}</span>
-                      <span className="min-w-0 break-all">{line}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Panel>
-
-            <Panel>
-              <PanelHeader title="Prompt 预览" sub={featuredVersion ? `v${featuredVersion.versionNumber}` : "empty"} />
-              <div className="grid gap-2 p-4 font-mono text-xs leading-5 text-white/[0.62]">
-                {previewLines.map((line, index) => (
+            <PanelHeader title="SDK 接入" sub="业务代码加载灰度版本并阻断泄露" />
+            <div className="p-5">
+              <div className="rounded-[24px] border border-white/[0.07] bg-[#15161b]/78 p-4 font-mono text-xs leading-6 text-white/62">
+                {[
+                  "from promptguard import GuardedPrompt",
+                  `prompt = GuardedPrompt.load(\"${featured?.name ?? "customer-service"}\")`,
+                  "response = prompt.run(user_input)",
+                  "return response.output",
+                ].map((line, index) => (
                   <div key={`${line}-${index}`} className="flex gap-3">
-                    <span className="text-white/25">{String(index + 1).padStart(2, "0")}</span>
-                    <span className="line-clamp-1">{line}</span>
+                    <span className="select-none text-white/24">{String(index + 1).padStart(2, "0")}</span>
+                    <span className="min-w-0 break-all">{line}</span>
                   </div>
                 ))}
               </div>
-            </Panel>
-          </div>
+            </div>
+          </Panel>
         </section>
       </div>
     </main>

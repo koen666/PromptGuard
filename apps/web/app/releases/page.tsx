@@ -24,7 +24,7 @@ export default async function ReleasesPage() {
   return (
     <>
       <TemplatePageWrap>
-        <TemplateSectionHeader tag="Deploy" title="Gray Release" titleMuted="回滚" />
+        <TemplateSectionHeader tag="发布" title="灰度发布" titleMuted="回滚" />
 
         <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
           <Panel>
@@ -59,7 +59,7 @@ export default async function ReleasesPage() {
                 alerts.slice(0, 5).map((alert) => (
                   <div key={alert.id} className="rounded-md border border-red-400/20 bg-red-500/10 p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium text-red-100">{alert.metric}</span>
+                      <span className="text-sm font-medium text-red-100">{formatMetricName(alert.metric)}</span>
                       <StatusPill value={alert.severity} />
                     </div>
                     <p className="mt-1 text-xs text-red-100/70">{alert.message}</p>
@@ -95,9 +95,9 @@ export default async function ReleasesPage() {
               name={`${policy.environment} · ${policy.trafficPercent}% 灰度`}
               sub={policy.status}
               specs={[
-                { label: "Prompt", value: policy.promptId.slice(0, 12) + "…" },
-                { label: "Stable", value: policy.stableVersionId?.slice(0, 12) + "…" || "—" },
-                { label: "Gray", value: policy.grayVersionId?.slice(0, 12) + "…" || "—" },
+                { label: "提示词", value: policy.promptId.slice(0, 12) + "…" },
+                { label: "稳定版本", value: policy.stableVersionId?.slice(0, 12) + "…" || "—" },
+                { label: "灰度版本", value: policy.grayVersionId?.slice(0, 12) + "…" || "—" },
                 { label: "更新", value: formatDate(policy.updatedAt) },
               ]}
               tier={policy.status}
@@ -118,7 +118,7 @@ export default async function ReleasesPage() {
                 name={`${r.trafficPercent}% 灰度`}
                 sub={r.status}
                 specs={[
-                  { label: "Prompt", value: r.promptId.slice(0, 12) + "…" },
+                  { label: "提示词", value: r.promptId.slice(0, 12) + "…" },
                   { label: "观察分", value: r.observationScore?.toFixed(2) ?? "—" },
                   { label: "时间", value: formatDate(r.createdAt) },
                 ]}
@@ -143,11 +143,11 @@ export default async function ReleasesPage() {
               key={event.id}
               index={i}
               icon="solar:clock-circle-linear"
-              name={event.eventType}
+              name={formatReleaseEvent(event.eventType)}
               sub={event.detail || "—"}
               specs={[
-                { label: "Prompt", value: event.promptId.slice(0, 12) + "…" },
-                { label: "Version", value: event.promptVersionId?.slice(0, 12) + "…" || "—" },
+                { label: "提示词", value: event.promptId.slice(0, 12) + "…" },
+                { label: "版本", value: event.promptVersionId?.slice(0, 12) + "…" || "—" },
                 { label: "时间", value: formatDate(event.createdAt) },
               ]}
             />
@@ -156,6 +156,27 @@ export default async function ReleasesPage() {
       </TemplateListSection>
     </>
   );
+}
+
+function formatMetricName(metric: string) {
+  const map: Record<string, string> = {
+    observation_score: "观察分",
+    latency_ms: "延迟",
+    cost_usd: "成本",
+    pass_rate: "通过率",
+    risk_score: "风险分",
+  };
+  return map[metric] ?? metric;
+}
+
+function formatReleaseEvent(eventType: string) {
+  const map: Record<string, string> = {
+    expand: "扩容灰度",
+    promote: "全量发布",
+    rollback: "回滚",
+    start: "启动灰度",
+  };
+  return map[eventType] ?? eventType;
 }
 
 function TrendPanel({

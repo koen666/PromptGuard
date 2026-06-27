@@ -9,13 +9,9 @@ const projectRoot = path.resolve(__dirname, "../..");
 dotenv.config({ path: path.join(projectRoot, ".env") });
 
 process.env.PROMPTGUARD_ROOT ??= projectRoot;
-process.env.DATABASE_URL ??= path.join(projectRoot, "data", "promptguard.db");
-if (process.env.DATABASE_URL && !path.isAbsolute(process.env.DATABASE_URL)) {
-  process.env.DATABASE_URL = path.resolve(projectRoot, process.env.DATABASE_URL);
-}
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["better-sqlite3", "@promptguard/core"],
+  serverExternalPackages: ["mysql2", "@promptguard/core"],
 };
 
 export default nextConfig;

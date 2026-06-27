@@ -21,7 +21,7 @@ export default async function DatasetDetailPage({
 
   return (
     <TemplatePageWrap>
-      <TemplateSectionHeader tag="Dataset" title={dataset.name} titleMuted="预览" />
+      <TemplateSectionHeader tag="数据集" title={dataset.name} titleMuted="预览" />
       <Panel>
         <div className="mb-4 grid gap-3 text-sm md:grid-cols-4">
           <div>
@@ -45,9 +45,9 @@ export default async function DatasetDetailPage({
         <div className="overflow-hidden rounded-md border border-white/10">
           <div className="grid grid-cols-12 gap-3 border-b border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium uppercase tracking-[0.12em] text-white/40">
             <span className="col-span-1">#</span>
-            <span className="col-span-5">Input</span>
-            <span className="col-span-4">Expected</span>
-            <span className="col-span-2">Tags</span>
+            <span className="col-span-5">输入</span>
+            <span className="col-span-4">预期表现</span>
+            <span className="col-span-2">标签</span>
           </div>
           {dataset.testCases.map((item, index) => (
             <div key={item.id} className="grid grid-cols-12 gap-3 border-b border-white/8 px-3 py-3 text-sm last:border-b-0">

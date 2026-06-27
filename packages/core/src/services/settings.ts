@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { getDatabasePath, getLlmConfig, type LlmProvider, type OpenAiWireApi } from "../config.js";
+import { getDatabaseLabel, getLlmConfig, type LlmProvider, type OpenAiWireApi } from "../config.js";
 import { resetLlmAdapter } from "../adapters/llm/index.js";
 import { alertRules, modelConfig, systemConfig } from "../db/schema.js";
 import { getDb } from "../db/client.js";
@@ -30,7 +30,7 @@ export async function getSystemSettings() {
 
   return {
     provider: envOverrides.provider ? envConfig.provider : ((values.llmProvider as LlmProvider) ?? envConfig.provider),
-    databasePath: getDatabasePath(),
+    databasePath: getDatabaseLabel(),
     openaiBaseUrl: envOverrides.openaiBaseUrl ? envConfig.openaiBaseUrl : (values.openaiBaseUrl ?? envConfig.openaiBaseUrl),
     openaiWireApi: (envOverrides.openaiWireApi ? envConfig.openaiWireApi : storedOpenAiWireApi) as OpenAiWireApi,
     openaiModel: envOverrides.openaiModel ? envConfig.openaiModel : (values.openaiModel ?? envConfig.openaiModel),

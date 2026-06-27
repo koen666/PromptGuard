@@ -45,7 +45,7 @@ export function OptimizerActions({
         {loading === "draft" ? "生成中…" : optimizationId ? "重新生成优化草案" : "生成优化草案"}
       </Button>
       <Button disabled={!!loading || applied} onClick={() => requestOptimization(true)}>
-        {loading === "apply" ? "保存中…" : applied ? "已保存新版" : "保存为新版 Prompt"}
+        {loading === "apply" ? "保存中…" : applied ? "已保存新版" : "保存为新版提示词"}
       </Button>
       {error && <span className="text-sm text-red-300">{error}</span>}
     </div>

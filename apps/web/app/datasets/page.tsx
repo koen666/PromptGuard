@@ -17,7 +17,7 @@ export default async function DatasetsPage() {
   return (
     <>
       <TemplatePageWrap>
-        <TemplateSectionHeader tag="Benchmark" title="Dataset" titleMuted="数据集" />
+        <TemplateSectionHeader tag="基准测试" title="数据集" titleMuted="用例" />
         <DatasetManager />
       </TemplatePageWrap>
       <TemplateListSection title="评测数据集" description="管理测试用例，用于自动评测。">

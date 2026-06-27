@@ -11,5 +11,6 @@ __pycache__/
 .env.local
 .promptguard-session.json
 data/
-reports/
+/reports/
+report_evidence/
 .DS_Store

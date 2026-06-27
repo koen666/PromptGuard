@@ -19,7 +19,7 @@ export default async function PromptDetailPage({ params }: { params: Promise<{ i
   return (
     <TemplatePageWrap>
       <TemplateSectionHeader
-        tag="Prompt"
+        tag="提示词"
         title={prompt.name}
         titleMuted={`v${activeVersion?.versionNumber ?? 1}`}
         action={<StatusPill value={prompt.status} />}
@@ -84,7 +84,7 @@ export default async function PromptDetailPage({ params }: { params: Promise<{ i
                     href={`/prompts/${id}/diff?from=${Math.max(1, v.versionNumber - 1)}&to=${v.versionNumber}`}
                     className="rounded-md border border-white/10 px-2.5 py-1 text-xs text-emerald-300 hover:bg-white/5"
                   >
-                    Diff
+                    差异
                   </Link>
                 </div>
                 {v.changelog && <p className="mt-2 text-xs leading-5 text-white/45">{v.changelog}</p>}

@@ -20,6 +20,10 @@ import {
   exportAuditLogs,
   exportReport,
   exportPromptFile,
+  closeDb,
+  configureProjectRemote,
+  ensureProjectConfig,
+  getProjectStatus,
   getSystemSettings,
   getUserBySessionToken,
   getPrompt,
@@ -34,6 +38,8 @@ import {
   listUsers,
   login,
   logout,
+  pullProjectPrompts,
+  pushProjectPrompts,
   listDatasets,
   listEvaluationRuns,
   listGrayReleases,
@@ -57,6 +63,7 @@ import {
   runSecurityScan,
   savePromptVersion,
   savePromptVersionFromFile,
+  scanProjectPromptReferences,
   expandGrayRelease,
   startGrayRelease,
   submitReview,
@@ -69,7 +76,7 @@ const sessionFile = path.resolve(__dirname, "../../../.promptguard-session.json"
 
 const program = new Command();
 
-program.name("promptguard").description("PromptGuard CLI").version("0.1.0", "-V, --cli-version");
+program.name("pmg").description("PromptGuard CLI").version("0.1.0", "-V, --cli-version");
 
 function readCliToken() {
   if (!fs.existsSync(sessionFile)) return undefined;
@@ -124,12 +131,31 @@ function printReportPath(label: string, filePath?: string) {
   if (filePath) console.log(chalk.dim(`${label}: ${filePath}`));
 }
 
+function writeEnvValue(key: string, value: string) {
+  const envPath = path.resolve(__dirname, "../../../.env");
+  const line = `${key}=${value}`;
+  if (!fs.existsSync(envPath)) {
+    fs.writeFileSync(envPath, `${line}\n`);
+    return;
+  }
+  const lines = fs.readFileSync(envPath, "utf-8").split(/\r?\n/);
+  const index = lines.findIndex((item) => item.startsWith(`${key}=`));
+  if (index >= 0) {
+    lines[index] = line;
+  } else {
+    if (lines.at(-1) !== "") lines.push("");
+    lines.push(line);
+  }
+  fs.writeFileSync(envPath, `${lines.join("\n").replace(/\n+$/, "")}\n`);
+  process.env[key] = value;
+}
+
 async function requireCliPermission(permission: Permission) {
   try {
     return await requirePermission(readCliToken(), permission);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Permission denied";
-    console.error(chalk.red(`${message}. Run: promptguard auth login`));
+    console.error(chalk.red(`${message}. Run: pmg auth login`));
     process.exit(1);
   }
 }
@@ -137,8 +163,8 @@ async function requireCliPermission(permission: Permission) {
 program
   .command("init")
   .description("Initialize database")
-  .action(() => {
-    runMigrations();
+  .action(async () => {
+    await runMigrations();
     console.log(chalk.green("Database initialized."));
   });
 
@@ -148,6 +174,8 @@ projectCmd
   .command("init")
   .description("Create .promptguard project folders and config")
   .option("--root <dir>", "Project root", process.cwd())
+  .option("--name <name>", "Project name")
+  .option("--description <description>", "Project description")
   .option("--sample", "Create a sample prompt file")
   .option("--force", "Overwrite existing PromptGuard config")
   .action((opts) => {
@@ -156,9 +184,116 @@ projectCmd
       withSample: Boolean(opts.sample),
       force: Boolean(opts.force),
     });
+    ensureProjectConfig({
+      root: opts.root,
+      name: opts.name,
+      description: opts.description,
+      force: Boolean(opts.force),
+    });
     console.log(chalk.green(`PromptGuard project initialized: ${project.guardDir}`));
     console.log(`  prompts: ${path.relative(process.cwd(), project.promptsDir) || project.promptsDir}`);
     console.log(`  datasets: ${path.relative(process.cwd(), project.datasetsDir) || project.datasetsDir}`);
+  });
+
+projectCmd
+  .command("scan")
+  .description("Scan current project source files for GuardedPrompt usage")
+  .option("--root <dir>", "Project root", process.cwd())
+  .action((opts) => {
+    const refs = scanProjectPromptReferences(path.resolve(opts.root));
+    if (!refs.length) {
+      console.log(chalk.yellow("No GuardedPrompt references found."));
+      return;
+    }
+    for (const ref of refs) {
+      console.log(`${chalk.cyan(ref.name)}  ${ref.kind}  ${ref.file}:${ref.line}`);
+    }
+  });
+
+projectCmd
+  .command("status")
+  .alias("list")
+  .description("Show project prompt assets and remote sync state")
+  .option("--root <dir>", "Project root", process.cwd())
+  .action(async (opts) => {
+    const status = await getProjectStatus(path.resolve(opts.root));
+    console.log(chalk.bold(`${status.projectName}  ${status.projectId}`));
+    console.log(`root=${status.root}`);
+    if (status.remote) {
+      console.log(`remote=${status.remote.name} mysql://${status.remote.user}@${status.remote.host}:${status.remote.port}/${status.remote.database}`);
+    } else {
+      console.log(chalk.yellow("remote=not configured"));
+    }
+    if (status.remoteError) console.log(chalk.red(`remote error: ${status.remoteError}`));
+    if (!status.prompts.length) {
+      console.log(chalk.yellow("No prompt assets detected. Run inside a project that uses GuardedPrompt or add prompt files."));
+      return;
+    }
+    for (const item of status.prompts) {
+      const location = item.source ? `${item.source}:${item.line}` : "-";
+      const version = item.versionNumber ? `v${item.versionNumber}` : "-";
+      console.log(`${chalk.cyan(item.name)}  local=${item.localStatus}  remote=${item.remoteStatus}  ${version}  ${location}`);
+    }
+  });
+
+const projectRemoteCmd = projectCmd.command("remote").description("Project remote registry");
+
+projectRemoteCmd
+  .command("set")
+  .description("Configure a MySQL remote for this PromptGuard project")
+  .option("--from-env", "Read remote settings from PROMPTGUARD_REMOTE_DB_* environment variables")
+  .option("--host <host>")
+  .option("--port <n>", "MySQL port", (value) => parseInt(value, 10), 3306)
+  .option("--user <user>")
+  .option("--database <database>")
+  .option("--name <name>", "Remote name", "origin")
+  .option("--password-env <env>", "Environment variable that stores the remote password", "PROMPTGUARD_REMOTE_DB_PASSWORD")
+  .option("--password <password>", "Write password to local .env. Avoid this in shell history outside local demos.")
+  .option("--root <dir>", "Project root", process.cwd())
+  .action((opts) => {
+    const host = opts.fromEnv ? process.env.PROMPTGUARD_REMOTE_DB_HOST : opts.host;
+    const port = opts.fromEnv
+      ? Number(process.env.PROMPTGUARD_REMOTE_DB_PORT ?? 3306)
+      : opts.port;
+    const user = opts.fromEnv ? process.env.PROMPTGUARD_REMOTE_DB_USER : opts.user;
+    const database = opts.fromEnv ? process.env.PROMPTGUARD_REMOTE_DB_NAME : opts.database;
+    if (!host || !user || !database) {
+      console.error(chalk.red("Remote host, user, and database are required. Use --host/--user/--database or --from-env."));
+      process.exit(1);
+    }
+    const config = configureProjectRemote({
+      root: opts.root,
+      name: opts.name,
+      host,
+      port,
+      user,
+      database,
+      passwordEnv: opts.passwordEnv,
+    });
+    if (opts.password) {
+      writeEnvValue(config.remote?.passwordEnv ?? opts.passwordEnv, opts.password);
+      console.log(chalk.green(`Remote password saved to local .env as ${config.remote?.passwordEnv ?? opts.passwordEnv}.`));
+    }
+    console.log(chalk.green(`Remote configured: ${config.remote?.name}`));
+    console.log(`  mysql://${config.remote?.user}@${config.remote?.host}:${config.remote?.port}/${config.remote?.database}`);
+  });
+
+projectCmd
+  .command("push")
+  .description("Push detected local prompt assets to the configured remote")
+  .option("--root <dir>", "Project root", process.cwd())
+  .action(async (opts) => {
+    const result = await pushProjectPrompts(path.resolve(opts.root));
+    console.log(chalk.green(`Pushed ${result.pushed} prompt asset(s) to ${result.projectName}.`));
+  });
+
+projectCmd
+  .command("pull")
+  .description("Pull prompt assets from the configured remote into the local asset store")
+  .option("--root <dir>", "Project root", process.cwd())
+  .action(async (opts) => {
+    const result = await pullProjectPrompts(path.resolve(opts.root));
+    console.log(chalk.green(`Pulled ${result.pulled} prompt asset(s): created=${result.created} updated=${result.updated}.`));
   });
 
 program
@@ -167,7 +302,7 @@ program
   .option("--name <name>", "Prompt asset name", `demo-customer-service-${Date.now()}`)
   .option("--traffic <n>", "Gray traffic percent", (value) => parseInt(value, 10), 10)
   .action(async (opts) => {
-    runMigrations();
+    await runMigrations();
     console.log(chalk.bold("PromptGuard lifecycle demo"));
 
     const prompt = await createPrompt({
@@ -252,6 +387,24 @@ program
   });
 
 const authCmd = program.command("auth").description("Authentication");
+
+authCmd
+  .command("register")
+  .requiredOption("-u, --username <username>")
+  .option("-p, --password <password>", "Password. Omit to type it interactively.")
+  .option("-n, --name <displayName>")
+  .action(async (opts) => {
+    const password = opts.password ?? await askHidden("Password: ");
+    const user = await createUser({
+      username: opts.username,
+      password,
+      displayName: opts.name,
+      roles: ["engineer"],
+      actor: "self_register",
+    });
+    console.log(chalk.green(`Registered user: ${user.username} (${user.roles.join(", ")})`));
+    console.log("Run: pmg auth login -u <username>");
+  });
 
 authCmd
   .command("login")
@@ -865,4 +1018,11 @@ const argv = process.argv[2] === "--"
   ? [process.argv[0], process.argv[1], ...process.argv.slice(3)]
   : process.argv;
 
-program.parse(argv);
+program.parseAsync(argv)
+  .catch((error) => {
+    console.error(chalk.red(error instanceof Error ? error.message : String(error)));
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await closeDb();
+  });

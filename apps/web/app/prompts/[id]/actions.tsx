@@ -81,7 +81,7 @@ export function PromptActions({
         />
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        <Button variant="secondary" disabled={!!loading} onClick={() => action("review", { promptId, versionNumber, comment: "Web submission" })}>
+        <Button variant="secondary" disabled={!!loading} onClick={() => action("review", { promptId, versionNumber, comment: "Web 提交" })}>
           提交审核
         </Button>
         <Button variant="secondary" disabled={!!loading} onClick={() => action("security", { promptId, versionNumber })}>

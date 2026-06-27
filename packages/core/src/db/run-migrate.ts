@@ -1,3 +1,6 @@
 import { runMigrations } from "./migrate.js";
 
-runMigrations();
+runMigrations().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

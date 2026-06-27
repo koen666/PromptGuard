@@ -1,308 +1,358 @@
 import { relations, sql } from "drizzle-orm";
-import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { boolean, double, index, int, longtext, mysqlTable, primaryKey, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
-export const prompts = sqliteTable("prompts", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description").default(""),
-  status: text("status", { enum: ["draft", "active", "archived"] }).notNull().default("draft"),
-  activeVersionId: text("active_version_id"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+const id = (name = "id") => varchar(name, { length: 160 });
+const shortText = (name: string, length = 255) => varchar(name, { length });
+const statusText = <T extends string>(name: string, values: readonly [T, ...T[]], length = 64) =>
+  varchar(name, { length, enum: values });
+const timestampText = (name: string) => varchar(name, { length: 40 }).notNull().default(sql`(UTC_TIMESTAMP(3))`);
+
+export const prompts = mysqlTable("prompts", {
+  id: id().primaryKey(),
+  name: shortText("name").notNull(),
+  description: longtext("description").default(""),
+  status: statusText("status", ["draft", "active", "archived"]).notNull().default("draft"),
+  activeVersionId: id("active_version_id"),
+  createdAt: timestampText("created_at"),
+  updatedAt: timestampText("updated_at"),
 });
 
-export const promptVersions = sqliteTable("prompt_versions", {
-  id: text("id").primaryKey(),
-  promptId: text("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
-  versionNumber: integer("version_number").notNull(),
-  content: text("content").notNull(),
-  changelog: text("changelog").default(""),
-  status: text("status", {
-    enum: [
-      "draft",
-      "versioned",
-      "evaluated",
-      "security_checked",
-      "review_pending",
-      "approved",
-      "gray",
-      "active",
-      "rejected",
-      "rolled_back",
-    ],
-  }).notNull().default("versioned"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+export const promptVersions = mysqlTable("prompt_versions", {
+  id: id().primaryKey(),
+  promptId: id("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
+  versionNumber: int("version_number").notNull(),
+  content: longtext("content").notNull(),
+  changelog: longtext("changelog").default(""),
+  status: statusText("status", [
+    "draft",
+    "versioned",
+    "evaluated",
+    "security_checked",
+    "review_pending",
+    "approved",
+    "gray",
+    "active",
+    "rejected",
+    "rolled_back",
+  ]).notNull().default("versioned"),
+  createdAt: timestampText("created_at"),
+}, (table) => ({
+  promptVersionIdx: index("idx_prompt_versions_prompt").on(table.promptId),
+}));
+
+export const tags = mysqlTable("tags", {
+  id: id().primaryKey(),
+  name: shortText("name").notNull().unique(),
 });
 
-export const tags = sqliteTable("tags", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull().unique(),
+export const promptTags = mysqlTable("prompt_tags", {
+  promptId: id("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
+  tagId: id("tag_id").notNull().references(() => tags.id, { onDelete: "cascade" }),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.promptId, table.tagId] }),
+  tagIdx: index("idx_prompt_tags_tag").on(table.tagId),
+}));
+
+export const users = mysqlTable("users", {
+  id: id().primaryKey(),
+  username: shortText("username").notNull().unique(),
+  passwordHash: shortText("password_hash").notNull(),
+  displayName: shortText("display_name").notNull(),
+  status: statusText("status", ["active", "locked"]).notNull().default("active"),
+  failedLoginCount: int("failed_login_count").notNull().default(0),
+  createdAt: timestampText("created_at"),
+  updatedAt: timestampText("updated_at"),
 });
 
-export const promptTags = sqliteTable("prompt_tags", {
-  promptId: text("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
-  tagId: text("tag_id").notNull().references(() => tags.id, { onDelete: "cascade" }),
+export const roles = mysqlTable("roles", {
+  id: id().primaryKey(),
+  name: statusText("name", ["admin", "engineer", "reviewer", "release_manager", "viewer"]).notNull().unique(),
+  description: longtext("description").default(""),
+  createdAt: timestampText("created_at"),
 });
 
-export const users = sqliteTable("users", {
-  id: text("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
-  displayName: text("display_name").notNull(),
-  status: text("status", { enum: ["active", "locked"] }).notNull().default("active"),
-  failedLoginCount: integer("failed_login_count").notNull().default(0),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+export const userRoles = mysqlTable("user_roles", {
+  userId: id("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  roleId: id("role_id").notNull().references(() => roles.id, { onDelete: "cascade" }),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.userId, table.roleId] }),
+  roleIdx: index("idx_user_roles_role").on(table.roleId),
+}));
+
+export const sessions = mysqlTable("sessions", {
+  id: id().primaryKey(),
+  userId: id("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: shortText("token_hash").notNull().unique(),
+  createdAt: timestampText("created_at"),
+  expiresAt: shortText("expires_at", 40).notNull(),
+  revokedAt: shortText("revoked_at", 40),
+}, (table) => ({
+  userIdx: index("idx_sessions_user").on(table.userId),
+}));
+
+export const systemConfig = mysqlTable("system_config", {
+  key: shortText("key").primaryKey(),
+  value: longtext("value").notNull(),
+  updatedAt: timestampText("updated_at"),
 });
 
-export const roles = sqliteTable("roles", {
-  id: text("id").primaryKey(),
-  name: text("name", { enum: ["admin", "engineer", "reviewer", "release_manager", "viewer"] }).notNull().unique(),
-  description: text("description").default(""),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+export const modelConfig = mysqlTable("model_config", {
+  id: id().primaryKey(),
+  provider: statusText("provider", ["mock", "openai", "anthropic", "ollama"]).notNull(),
+  model: shortText("model").notNull(),
+  enabled: boolean("enabled").notNull().default(true),
+  updatedAt: timestampText("updated_at"),
+}, (table) => ({
+  providerIdx: index("idx_model_config_provider").on(table.provider),
+}));
+
+export const alertRules = mysqlTable("alert_rules", {
+  id: id().primaryKey(),
+  metric: shortText("metric").notNull(),
+  operator: statusText("operator", [">", ">=", "<", "<="], 4).notNull(),
+  threshold: double("threshold").notNull(),
+  severity: statusText("severity", ["low", "medium", "high"]).notNull().default("medium"),
+  enabled: boolean("enabled").notNull().default(true),
+  updatedAt: timestampText("updated_at"),
 });
 
-export const userRoles = sqliteTable("user_roles", {
-  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  roleId: text("role_id").notNull().references(() => roles.id, { onDelete: "cascade" }),
+export const alertRecords = mysqlTable("alert_records", {
+  id: id().primaryKey(),
+  ruleId: id("rule_id").references(() => alertRules.id, { onDelete: "set null" }),
+  releaseId: id("release_id"),
+  metric: shortText("metric").notNull(),
+  value: double("value").notNull(),
+  threshold: double("threshold").notNull(),
+  severity: statusText("severity", ["low", "medium", "high"]).notNull(),
+  status: statusText("status", ["open", "resolved"]).notNull().default("open"),
+  message: longtext("message").notNull(),
+  createdAt: timestampText("created_at"),
+}, (table) => ({
+  statusIdx: index("idx_alert_records_status").on(table.status),
+}));
+
+export const metricSamples = mysqlTable("metric_samples", {
+  id: id().primaryKey(),
+  releaseId: id("release_id"),
+  promptId: id("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
+  environment: shortText("environment").notNull().default("production"),
+  metric: shortText("metric").notNull(),
+  value: double("value").notNull(),
+  unit: shortText("unit").default(""),
+  sampledAt: timestampText("sampled_at"),
+}, (table) => ({
+  releaseIdx: index("idx_metric_samples_release").on(table.releaseId),
+  promptIdx: index("idx_metric_samples_prompt").on(table.promptId),
+}));
+
+export const datasets = mysqlTable("datasets", {
+  id: id().primaryKey(),
+  name: shortText("name").notNull(),
+  description: longtext("description").default(""),
+  createdAt: timestampText("created_at"),
+  updatedAt: timestampText("updated_at"),
 });
 
-export const sessions = sqliteTable("sessions", {
-  id: text("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  tokenHash: text("token_hash").notNull().unique(),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  expiresAt: text("expires_at").notNull(),
-  revokedAt: text("revoked_at"),
-});
+export const testCases = mysqlTable("test_cases", {
+  id: id().primaryKey(),
+  datasetId: id("dataset_id").notNull().references(() => datasets.id, { onDelete: "cascade" }),
+  input: longtext("input").notNull(),
+  expectedBehavior: longtext("expected_behavior").default(""),
+  tags: longtext("tags").default(""),
+  createdAt: timestampText("created_at"),
+}, (table) => ({
+  datasetIdx: index("idx_test_cases_dataset").on(table.datasetId),
+}));
 
-export const systemConfig = sqliteTable("system_config", {
-  key: text("key").primaryKey(),
-  value: text("value").notNull(),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
-});
+export const evaluationRuns = mysqlTable("evaluation_runs", {
+  id: id().primaryKey(),
+  promptVersionId: id("prompt_version_id").notNull().references(() => promptVersions.id),
+  datasetId: id("dataset_id").notNull().references(() => datasets.id),
+  status: statusText("status", ["pending", "running", "completed", "failed"]).notNull().default("pending"),
+  models: longtext("models").notNull(),
+  provider: shortText("provider").notNull().default("mock"),
+  avgScore: double("avg_score"),
+  totalTokens: int("total_tokens").notNull().default(0),
+  totalCost: double("total_cost").notNull().default(0),
+  errorMessage: longtext("error_message"),
+  createdAt: timestampText("created_at"),
+  completedAt: shortText("completed_at", 40),
+}, (table) => ({
+  versionIdx: index("idx_evaluation_runs_version").on(table.promptVersionId),
+  datasetIdx: index("idx_evaluation_runs_dataset").on(table.datasetId),
+}));
 
-export const modelConfig = sqliteTable("model_config", {
-  id: text("id").primaryKey(),
-  provider: text("provider", { enum: ["mock", "openai", "anthropic", "ollama"] }).notNull(),
-  model: text("model").notNull(),
-  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
-});
+export const evaluationResults = mysqlTable("evaluation_results", {
+  id: id().primaryKey(),
+  runId: id("run_id").notNull().references(() => evaluationRuns.id, { onDelete: "cascade" }),
+  testCaseId: id("test_case_id").notNull().references(() => testCases.id),
+  model: shortText("model").notNull(),
+  output: longtext("output").notNull(),
+  relevanceScore: double("relevance_score").notNull(),
+  formatScore: double("format_score").notNull(),
+  latencyMs: int("latency_ms").notNull(),
+  tokenCount: int("token_count").notNull().default(0),
+  cost: double("cost").notNull().default(0),
+  errorMessage: longtext("error_message"),
+  passed: boolean("passed").notNull().default(false),
+}, (table) => ({
+  runIdx: index("idx_evaluation_results_run").on(table.runId),
+  caseIdx: index("idx_evaluation_results_case").on(table.testCaseId),
+}));
 
-export const alertRules = sqliteTable("alert_rules", {
-  id: text("id").primaryKey(),
-  metric: text("metric").notNull(),
-  operator: text("operator", { enum: [">", ">=", "<", "<="] }).notNull(),
-  threshold: real("threshold").notNull(),
-  severity: text("severity", { enum: ["low", "medium", "high"] }).notNull().default("medium"),
-  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
-});
+export const evaluationComparisons = mysqlTable("evaluation_comparisons", {
+  id: id().primaryKey(),
+  promptId: id("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
+  baselineVersionId: id("baseline_version_id").notNull().references(() => promptVersions.id),
+  candidateVersionId: id("candidate_version_id").notNull().references(() => promptVersions.id),
+  datasetId: id("dataset_id").notNull().references(() => datasets.id),
+  baselineRunId: id("baseline_run_id").notNull().references(() => evaluationRuns.id),
+  candidateRunId: id("candidate_run_id").notNull().references(() => evaluationRuns.id),
+  avgScoreDelta: double("avg_score_delta").notNull(),
+  passRateDelta: double("pass_rate_delta").notNull(),
+  latencyDeltaMs: double("latency_delta_ms").notNull(),
+  improvedCount: int("improved_count").notNull(),
+  regressedCount: int("regressed_count").notNull(),
+  unchangedCount: int("unchanged_count").notNull(),
+  createdAt: timestampText("created_at"),
+}, (table) => ({
+  promptIdx: index("idx_evaluation_comparisons_prompt").on(table.promptId),
+}));
 
-export const alertRecords = sqliteTable("alert_records", {
-  id: text("id").primaryKey(),
-  ruleId: text("rule_id").references(() => alertRules.id, { onDelete: "set null" }),
-  releaseId: text("release_id"),
-  metric: text("metric").notNull(),
-  value: real("value").notNull(),
-  threshold: real("threshold").notNull(),
-  severity: text("severity", { enum: ["low", "medium", "high"] }).notNull(),
-  status: text("status", { enum: ["open", "resolved"] }).notNull().default("open"),
-  message: text("message").notNull(),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-});
+export const securityScans = mysqlTable("security_scans", {
+  id: id().primaryKey(),
+  promptVersionId: id("prompt_version_id").notNull().references(() => promptVersions.id),
+  status: statusText("status", ["pending", "running", "completed", "failed"]).notNull().default("pending"),
+  provider: shortText("provider").notNull().default("mock"),
+  riskScore: double("risk_score"),
+  passed: boolean("passed"),
+  createdAt: timestampText("created_at"),
+  completedAt: shortText("completed_at", 40),
+}, (table) => ({
+  versionIdx: index("idx_security_scans_version").on(table.promptVersionId),
+}));
 
-export const metricSamples = sqliteTable("metric_samples", {
-  id: text("id").primaryKey(),
-  releaseId: text("release_id"),
-  promptId: text("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
-  environment: text("environment").notNull().default("production"),
-  metric: text("metric").notNull(),
-  value: real("value").notNull(),
-  unit: text("unit").default(""),
-  sampledAt: text("sampled_at").notNull().default(sql`(datetime('now'))`),
-});
+export const securityFindings = mysqlTable("security_findings", {
+  id: id().primaryKey(),
+  scanId: id("scan_id").notNull().references(() => securityScans.id, { onDelete: "cascade" }),
+  testName: shortText("test_name").notNull(),
+  attackInput: longtext("attack_input").notNull(),
+  modelOutput: longtext("model_output").notNull(),
+  riskLevel: statusText("risk_level", ["low", "medium", "high", "critical"]).notNull(),
+  description: longtext("description").notNull(),
+  recommendation: longtext("recommendation").default(""),
+  passed: boolean("passed").notNull(),
+}, (table) => ({
+  scanIdx: index("idx_security_findings_scan").on(table.scanId),
+}));
 
-export const datasets = sqliteTable("datasets", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description").default(""),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
-});
+export const promptOptimizations = mysqlTable("prompt_optimizations", {
+  id: id().primaryKey(),
+  scanId: id("scan_id").notNull().references(() => securityScans.id, { onDelete: "cascade" }),
+  promptId: id("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
+  sourceVersionId: id("source_version_id").notNull().references(() => promptVersions.id),
+  candidateVersionId: id("candidate_version_id").references(() => promptVersions.id),
+  status: statusText("status", ["draft", "applied"]).notNull().default("draft"),
+  provider: shortText("provider").notNull().default("mock"),
+  model: shortText("model").notNull().default("promptguard-review"),
+  summary: longtext("summary").notNull(),
+  overallRiskLevel: statusText("overall_risk_level", ["low", "medium", "high", "critical"]).notNull(),
+  overallRiskScore: double("overall_risk_score").notNull(),
+  leakProbability: double("leak_probability").notNull(),
+  reviewJson: longtext("review_json").notNull(),
+  optimizedPrompt: longtext("optimized_prompt").notNull(),
+  createdBy: shortText("created_by").default("system"),
+  createdAt: timestampText("created_at"),
+  appliedAt: shortText("applied_at", 40),
+}, (table) => ({
+  scanIdx: index("idx_prompt_optimizations_scan").on(table.scanId),
+  promptIdx: index("idx_prompt_optimizations_prompt").on(table.promptId),
+}));
 
-export const testCases = sqliteTable("test_cases", {
-  id: text("id").primaryKey(),
-  datasetId: text("dataset_id").notNull().references(() => datasets.id, { onDelete: "cascade" }),
-  input: text("input").notNull(),
-  expectedBehavior: text("expected_behavior").default(""),
-  tags: text("tags").default(""),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-});
+export const reviewRequests = mysqlTable("review_requests", {
+  id: id().primaryKey(),
+  promptId: id("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
+  promptVersionId: id("prompt_version_id").notNull().references(() => promptVersions.id),
+  evaluationRunId: id("evaluation_run_id").references(() => evaluationRuns.id),
+  securityScanId: id("security_scan_id").references(() => securityScans.id),
+  status: statusText("status", ["pending", "approved", "rejected"]).notNull().default("pending"),
+  submittedBy: shortText("submitted_by").default("engineer"),
+  reviewedBy: shortText("reviewed_by"),
+  comment: longtext("comment").default(""),
+  createdAt: timestampText("created_at"),
+  reviewedAt: shortText("reviewed_at", 40),
+}, (table) => ({
+  promptIdx: index("idx_review_requests_prompt").on(table.promptId),
+  versionIdx: index("idx_review_requests_version").on(table.promptVersionId),
+}));
 
-export const evaluationRuns = sqliteTable("evaluation_runs", {
-  id: text("id").primaryKey(),
-  promptVersionId: text("prompt_version_id").notNull().references(() => promptVersions.id),
-  datasetId: text("dataset_id").notNull().references(() => datasets.id),
-  status: text("status", { enum: ["pending", "running", "completed", "failed"] }).notNull().default("pending"),
-  models: text("models").notNull(),
-  provider: text("provider").notNull().default("mock"),
-  avgScore: real("avg_score"),
-  totalTokens: integer("total_tokens").notNull().default(0),
-  totalCost: real("total_cost").notNull().default(0),
-  errorMessage: text("error_message"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  completedAt: text("completed_at"),
-});
+export const grayReleases = mysqlTable("gray_releases", {
+  id: id().primaryKey(),
+  promptId: id("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
+  promptVersionId: id("prompt_version_id").notNull().references(() => promptVersions.id),
+  trafficPercent: int("traffic_percent").notNull(),
+  status: statusText("status", ["active", "completed", "rolled_back"]).notNull().default("active"),
+  note: longtext("note").default(""),
+  observationScore: double("observation_score"),
+  observationLatencyMs: int("observation_latency_ms"),
+  observationCost: double("observation_cost"),
+  createdAt: timestampText("created_at"),
+  endedAt: shortText("ended_at", 40),
+}, (table) => ({
+  promptIdx: index("idx_gray_releases_prompt").on(table.promptId),
+  versionIdx: index("idx_gray_releases_version").on(table.promptVersionId),
+}));
 
-export const evaluationResults = sqliteTable("evaluation_results", {
-  id: text("id").primaryKey(),
-  runId: text("run_id").notNull().references(() => evaluationRuns.id, { onDelete: "cascade" }),
-  testCaseId: text("test_case_id").notNull().references(() => testCases.id),
-  model: text("model").notNull(),
-  output: text("output").notNull(),
-  relevanceScore: real("relevance_score").notNull(),
-  formatScore: real("format_score").notNull(),
-  latencyMs: integer("latency_ms").notNull(),
-  tokenCount: integer("token_count").notNull().default(0),
-  cost: real("cost").notNull().default(0),
-  errorMessage: text("error_message"),
-  passed: integer("passed", { mode: "boolean" }).notNull().default(false),
-});
+export const routePolicies = mysqlTable("route_policies", {
+  id: id().primaryKey(),
+  promptId: id("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
+  environment: shortText("environment").notNull().default("production"),
+  stableVersionId: id("stable_version_id").references(() => promptVersions.id),
+  grayVersionId: id("gray_version_id").references(() => promptVersions.id),
+  trafficPercent: int("traffic_percent").notNull().default(0),
+  status: statusText("status", ["idle", "gray", "full", "rolled_back"]).notNull().default("idle"),
+  updatedBy: shortText("updated_by").default("system"),
+  note: longtext("note").default(""),
+  createdAt: timestampText("created_at"),
+  updatedAt: timestampText("updated_at"),
+}, (table) => ({
+  promptEnvironment: uniqueIndex("idx_route_policies_prompt_environment").on(table.promptId, table.environment),
+}));
 
-export const evaluationComparisons = sqliteTable("evaluation_comparisons", {
-  id: text("id").primaryKey(),
-  promptId: text("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
-  baselineVersionId: text("baseline_version_id").notNull().references(() => promptVersions.id),
-  candidateVersionId: text("candidate_version_id").notNull().references(() => promptVersions.id),
-  datasetId: text("dataset_id").notNull().references(() => datasets.id),
-  baselineRunId: text("baseline_run_id").notNull().references(() => evaluationRuns.id),
-  candidateRunId: text("candidate_run_id").notNull().references(() => evaluationRuns.id),
-  avgScoreDelta: real("avg_score_delta").notNull(),
-  passRateDelta: real("pass_rate_delta").notNull(),
-  latencyDeltaMs: real("latency_delta_ms").notNull(),
-  improvedCount: integer("improved_count").notNull(),
-  regressedCount: integer("regressed_count").notNull(),
-  unchangedCount: integer("unchanged_count").notNull(),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-});
+export const releaseEvents = mysqlTable("release_events", {
+  id: id().primaryKey(),
+  promptId: id("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
+  promptVersionId: id("prompt_version_id").references(() => promptVersions.id),
+  eventType: statusText("event_type", ["gray_start", "gray_expand", "full_release", "rollback"]).notNull(),
+  detail: longtext("detail").default(""),
+  createdAt: timestampText("created_at"),
+}, (table) => ({
+  promptIdx: index("idx_release_events_prompt").on(table.promptId),
+}));
 
-export const securityScans = sqliteTable("security_scans", {
-  id: text("id").primaryKey(),
-  promptVersionId: text("prompt_version_id").notNull().references(() => promptVersions.id),
-  status: text("status", { enum: ["pending", "running", "completed", "failed"] }).notNull().default("pending"),
-  provider: text("provider").notNull().default("mock"),
-  riskScore: real("risk_score"),
-  passed: integer("passed", { mode: "boolean" }),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  completedAt: text("completed_at"),
-});
+export const auditLogs = mysqlTable("audit_logs", {
+  id: id().primaryKey(),
+  action: shortText("action").notNull(),
+  entityType: shortText("entity_type").notNull(),
+  entityId: shortText("entity_id").notNull(),
+  actor: shortText("actor").default("system"),
+  detail: longtext("detail").default(""),
+  createdAt: timestampText("created_at"),
+}, (table) => ({
+  entityIdx: index("idx_audit_logs_entity").on(table.entityType, table.entityId),
+}));
 
-export const securityFindings = sqliteTable("security_findings", {
-  id: text("id").primaryKey(),
-  scanId: text("scan_id").notNull().references(() => securityScans.id, { onDelete: "cascade" }),
-  testName: text("test_name").notNull(),
-  attackInput: text("attack_input").notNull(),
-  modelOutput: text("model_output").notNull(),
-  riskLevel: text("risk_level", { enum: ["low", "medium", "high", "critical"] }).notNull(),
-  description: text("description").notNull(),
-  recommendation: text("recommendation").default(""),
-  passed: integer("passed", { mode: "boolean" }).notNull(),
-});
-
-export const promptOptimizations = sqliteTable("prompt_optimizations", {
-  id: text("id").primaryKey(),
-  scanId: text("scan_id").notNull().references(() => securityScans.id, { onDelete: "cascade" }),
-  promptId: text("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
-  sourceVersionId: text("source_version_id").notNull().references(() => promptVersions.id),
-  candidateVersionId: text("candidate_version_id").references(() => promptVersions.id),
-  status: text("status", { enum: ["draft", "applied"] }).notNull().default("draft"),
-  provider: text("provider").notNull().default("mock"),
-  model: text("model").notNull().default("promptguard-review"),
-  summary: text("summary").notNull(),
-  overallRiskLevel: text("overall_risk_level", { enum: ["low", "medium", "high", "critical"] }).notNull(),
-  overallRiskScore: real("overall_risk_score").notNull(),
-  leakProbability: real("leak_probability").notNull(),
-  reviewJson: text("review_json").notNull(),
-  optimizedPrompt: text("optimized_prompt").notNull(),
-  createdBy: text("created_by").default("system"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  appliedAt: text("applied_at"),
-});
-
-export const reviewRequests = sqliteTable("review_requests", {
-  id: text("id").primaryKey(),
-  promptId: text("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
-  promptVersionId: text("prompt_version_id").notNull().references(() => promptVersions.id),
-  evaluationRunId: text("evaluation_run_id").references(() => evaluationRuns.id),
-  securityScanId: text("security_scan_id").references(() => securityScans.id),
-  status: text("status", { enum: ["pending", "approved", "rejected"] }).notNull().default("pending"),
-  submittedBy: text("submitted_by").default("engineer"),
-  reviewedBy: text("reviewed_by"),
-  comment: text("comment").default(""),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  reviewedAt: text("reviewed_at"),
-});
-
-export const grayReleases = sqliteTable("gray_releases", {
-  id: text("id").primaryKey(),
-  promptId: text("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
-  promptVersionId: text("prompt_version_id").notNull().references(() => promptVersions.id),
-  trafficPercent: integer("traffic_percent").notNull(),
-  status: text("status", { enum: ["active", "completed", "rolled_back"] }).notNull().default("active"),
-  note: text("note").default(""),
-  observationScore: real("observation_score"),
-  observationLatencyMs: integer("observation_latency_ms"),
-  observationCost: real("observation_cost"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  endedAt: text("ended_at"),
-});
-
-export const routePolicies = sqliteTable("route_policies", {
-  id: text("id").primaryKey(),
-  promptId: text("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
-  environment: text("environment").notNull().default("production"),
-  stableVersionId: text("stable_version_id").references(() => promptVersions.id),
-  grayVersionId: text("gray_version_id").references(() => promptVersions.id),
-  trafficPercent: integer("traffic_percent").notNull().default(0),
-  status: text("status", { enum: ["idle", "gray", "full", "rolled_back"] }).notNull().default("idle"),
-  updatedBy: text("updated_by").default("system"),
-  note: text("note").default(""),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
-});
-
-export const releaseEvents = sqliteTable("release_events", {
-  id: text("id").primaryKey(),
-  promptId: text("prompt_id").notNull().references(() => prompts.id, { onDelete: "cascade" }),
-  promptVersionId: text("prompt_version_id").references(() => promptVersions.id),
-  eventType: text("event_type", {
-    enum: ["gray_start", "gray_expand", "full_release", "rollback"],
-  }).notNull(),
-  detail: text("detail").default(""),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-});
-
-export const auditLogs = sqliteTable("audit_logs", {
-  id: text("id").primaryKey(),
-  action: text("action").notNull(),
-  entityType: text("entity_type").notNull(),
-  entityId: text("entity_id").notNull(),
-  actor: text("actor").default("system"),
-  detail: text("detail").default(""),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-});
-
-export const reportRecords = sqliteTable("report_records", {
-  id: text("id").primaryKey(),
-  type: text("type", { enum: ["evaluation", "diff", "security", "release", "audit"] }).notNull(),
-  sourceId: text("source_id").notNull(),
-  format: text("format", { enum: ["json", "html"] }).notNull(),
-  filePath: text("file_path").notNull(),
-  generatedBy: text("generated_by").default("system"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-});
+export const reportRecords = mysqlTable("report_records", {
+  id: id().primaryKey(),
+  type: statusText("type", ["evaluation", "diff", "security", "release", "audit"]).notNull(),
+  sourceId: shortText("source_id").notNull(),
+  format: statusText("format", ["json", "html"]).notNull(),
+  filePath: longtext("file_path").notNull(),
+  generatedBy: shortText("generated_by").default("system"),
+  createdAt: timestampText("created_at"),
+}, (table) => ({
+  sourceIdx: index("idx_report_records_source").on(table.sourceId),
+}));
 
 export const promptsRelations = relations(prompts, ({ many, one }) => ({
   versions: many(promptVersions),

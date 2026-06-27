@@ -40,7 +40,7 @@ export default async function DiffPage({
   return (
     <>
       <TemplatePageWrap>
-        <TemplateSectionHeader tag="Diff" title={`v${from} → v${to}`} titleMuted={prompt.name + "."} />
+        <TemplateSectionHeader tag="差异" title={`v${from} → v${to}`} titleMuted={prompt.name + "。"} />
         <DiffVersionPicker promptId={id} versions={sortedVersions} from={from} to={to} />
         <pre className="animate-on-scroll overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 font-mono text-xs whitespace-pre-wrap">
           {renderDiff(diff.patch)}

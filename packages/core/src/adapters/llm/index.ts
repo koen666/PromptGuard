@@ -1,18 +1,9 @@
-import { createRequire } from "node:module";
-import { fileURLToPath } from "node:url";
-import { getDatabasePath, getLlmConfig } from "../../config.js";
+import { getLlmConfig } from "../../config.js";
 import { AnthropicAdapter } from "./anthropic.js";
 import { MockLlmAdapter } from "./mock.js";
 import { OllamaAdapter } from "./ollama.js";
 import { OpenAiAdapter } from "./openai.js";
 import type { LlmAdapter } from "./types.js";
-
-const require = createRequire(fileURLToPath(import.meta.url));
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Database = require("better-sqlite3") as new (filename: string) => {
-  prepare: (sql: string) => { all: () => Array<{ key: string; value: string }> };
-  close: () => void;
-};
 
 let adapterInstance: LlmAdapter | null = null;
 
@@ -45,35 +36,7 @@ export function resetLlmAdapter() {
 }
 
 function getConfiguredLlm() {
-  const envConfig = getLlmConfig();
-  try {
-    const db = new Database(getDatabasePath());
-    const rows = db.prepare("select key, value from system_config").all();
-    db.close();
-    const values = Object.fromEntries(rows.map((row) => [row.key, row.value]));
-    return {
-      ...envConfig,
-      provider: (values.llmProvider as typeof envConfig.provider | undefined) ?? envConfig.provider,
-      openaiBaseUrl: values.openaiBaseUrl ?? envConfig.openaiBaseUrl,
-      openaiWireApi: (values.openaiWireApi as typeof envConfig.openaiWireApi | undefined) ?? envConfig.openaiWireApi,
-      openaiModel: values.openaiModel ?? envConfig.openaiModel,
-      openaiReviewModel: values.openaiReviewModel ?? envConfig.openaiReviewModel,
-      openaiReasoningEffort: values.openaiReasoningEffort ?? envConfig.openaiReasoningEffort,
-      openaiDisableResponseStorage: values.openaiDisableResponseStorage
-        ? values.openaiDisableResponseStorage === "true"
-        : envConfig.openaiDisableResponseStorage,
-      openaiFallbackToMock: values.openaiFallbackToMock
-        ? values.openaiFallbackToMock === "true"
-        : envConfig.openaiFallbackToMock,
-      anthropicModel: values.anthropicModel ?? envConfig.anthropicModel,
-      ollamaModel: values.ollamaModel ?? envConfig.ollamaModel,
-      ollamaBaseUrl: values.ollamaBaseUrl ?? envConfig.ollamaBaseUrl,
-      openaiApiKey: values.openaiApiKey ?? envConfig.openaiApiKey,
-      anthropicApiKey: values.anthropicApiKey ?? envConfig.anthropicApiKey,
-    };
-  } catch {
-    return envConfig;
-  }
+  return getLlmConfig();
 }
 
 export * from "./types.js";

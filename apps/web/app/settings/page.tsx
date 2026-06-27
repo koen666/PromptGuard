@@ -10,7 +10,7 @@ export default async function SettingsPage() {
 
   return (
     <TemplatePageWrap>
-      <TemplateSectionHeader tag="Config" title="System Settings" titleMuted="配置" action={<StatusPill value={settings.provider} />} />
+      <TemplateSectionHeader tag="配置" title="系统设置" titleMuted="配置" action={<StatusPill value={settings.provider} />} />
       <SettingsForm initialSettings={settings} />
     </TemplatePageWrap>
   );

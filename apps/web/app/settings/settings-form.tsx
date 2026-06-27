@@ -114,12 +114,12 @@ export function SettingsForm({ initialSettings }: { initialSettings: SettingsSta
         <h3 className="text-lg font-semibold text-white">LLM 提供商</h3>
         <div className="mt-4 grid gap-4">
           <div>
-            <FieldLabel>Provider</FieldLabel>
+            <FieldLabel>模型提供商</FieldLabel>
             <Select value={provider} onChange={(e) => setProvider(e.target.value as Provider)}>
-              <option value="mock">mock</option>
-              <option value="openai">openai</option>
-              <option value="anthropic">anthropic</option>
-              <option value="ollama">ollama 本地模型</option>
+              <option value="mock">Mock 模拟</option>
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic</option>
+              <option value="ollama">Ollama 本地模型</option>
             </Select>
           </div>
           <div className="rounded-md border border-white/10 bg-white/[0.03] p-3">
@@ -132,14 +132,14 @@ export function SettingsForm({ initialSettings }: { initialSettings: SettingsSta
             <Input value={ollamaBaseUrl} onChange={(e) => setOllamaBaseUrl(e.target.value)} placeholder="http://127.0.0.1:11434" />
           </div>
           <div>
-            <FieldLabel>OpenAI Base URL</FieldLabel>
+            <FieldLabel>OpenAI 接口地址</FieldLabel>
             <Input value={openaiBaseUrl} onChange={(e) => setOpenaiBaseUrl(e.target.value)} placeholder="https://api.openai.com" />
           </div>
           <div>
-            <FieldLabel>OpenAI Wire API</FieldLabel>
+            <FieldLabel>OpenAI 接口类型</FieldLabel>
             <Select value={openaiWireApi} onChange={(e) => setOpenaiWireApi(e.target.value as OpenAiWireApi)}>
-              <option value="responses">responses</option>
-              <option value="chat_completions">chat_completions</option>
+              <option value="responses">Responses API</option>
+              <option value="chat_completions">Chat Completions API</option>
             </Select>
           </div>
           <div>
@@ -148,11 +148,11 @@ export function SettingsForm({ initialSettings }: { initialSettings: SettingsSta
             <p className="mt-1 text-xs text-white/40">OpenAI Key：{hasOpenAiKey ? "已配置" : "未配置"}</p>
           </div>
           <div>
-            <FieldLabel>OpenAI Review 模型</FieldLabel>
+            <FieldLabel>OpenAI 评审模型</FieldLabel>
             <Input value={openaiReviewModel} onChange={(e) => setOpenaiReviewModel(e.target.value)} placeholder="gpt-5.5" />
           </div>
           <div>
-            <FieldLabel>Reasoning Effort</FieldLabel>
+            <FieldLabel>推理强度</FieldLabel>
             <Input value={openaiReasoningEffort} onChange={(e) => setOpenaiReasoningEffort(e.target.value)} placeholder="xhigh" />
           </div>
           <label className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3 text-sm text-white/70">
@@ -165,7 +165,7 @@ export function SettingsForm({ initialSettings }: { initialSettings: SettingsSta
             禁用 Responses 存储 store=false
           </label>
           <div>
-            <FieldLabel>OpenAI API Key</FieldLabel>
+            <FieldLabel>OpenAI 密钥</FieldLabel>
             <Input
               type="password"
               value={openaiApiKey}
@@ -180,7 +180,7 @@ export function SettingsForm({ initialSettings }: { initialSettings: SettingsSta
             <p className="mt-1 text-xs text-white/40">Anthropic Key：{hasAnthropicKey ? "已配置" : "未配置"}</p>
           </div>
           <div>
-            <FieldLabel>Anthropic API Key</FieldLabel>
+            <FieldLabel>Anthropic 密钥</FieldLabel>
             <Input
               type="password"
               value={anthropicApiKey}
@@ -236,9 +236,9 @@ export function SettingsForm({ initialSettings }: { initialSettings: SettingsSta
                 value={rule.severity}
                 onChange={(e) => updateAlert(index, { severity: e.target.value as AlertSeverity })}
               >
-                <option value="low">low</option>
-                <option value="medium">medium</option>
-                <option value="high">high</option>
+                <option value="low">低</option>
+                <option value="medium">中</option>
+                <option value="high">高</option>
               </Select>
               <label className="flex items-center gap-2 text-sm text-white/70 md:col-span-2">
                 <input
