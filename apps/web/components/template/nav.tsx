@@ -649,7 +649,7 @@ export function TemplateNav() {
       <aside className="fixed bottom-3 left-3 top-3 z-40 hidden w-[276px] overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#202127]/78 shadow-[0_30px_90px_rgba(0,0,0,0.36)] backdrop-blur-2xl md:block">
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.014))]" />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_28%_2%,rgba(112,103,255,0.16),transparent_34%)]" />
-        <div className="relative flex h-full flex-col p-4">
+        <div className="relative flex h-full min-h-0 flex-col p-4">
           <div className="mb-5 flex items-center gap-3">
             <div className="flex h-12 w-12 shrink-0 aspect-square items-center justify-center overflow-hidden rounded-xl bg-[linear-gradient(135deg,#67e8f9,#7067ff)] text-lg font-bold text-white shadow-[0_16px_34px_rgba(112,103,255,0.34)]">
               PG
@@ -665,75 +665,79 @@ export function TemplateNav() {
 
           <NavSearch variant="side" placeholder="搜索页面" />
 
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/28">总览</div>
-          <nav className="space-y-1.5">
-            {primaryLinks.map((link, index) => {
-              const active = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
-              return (
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2 pr-1 [-webkit-overflow-scrolling:touch]">
+            <div className="flex min-h-full flex-col">
+              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/28">总览</div>
+              <nav className="space-y-1.5">
+                {primaryLinks.map((link, index) => {
+                  const active = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      title={link.label}
+                      aria-label={link.label}
+                      className={
+                        active
+                          ? "flex h-11 items-center gap-3 rounded-[16px] bg-[#7067ff] px-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(112,103,255,0.38)]"
+                          : "flex h-11 items-center gap-3 rounded-[16px] px-3 text-sm font-medium text-white/58 transition hover:bg-white/[0.05] hover:text-white"
+                      }
+                    >
+                      <Iconify icon={link.icon} width="19" />
+                      <span className="min-w-0 flex-1 truncate">{link.label}</span>
+                      {active ? <Iconify icon="solar:alt-arrow-up-linear" width="15" /> : index === 1 ? <span className="h-2 w-2 rounded-full bg-[#ff765f]" /> : null}
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              <div className="mt-6 space-y-1.5">
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/28">工作区</div>
+                {secondaryLinks.map((link, index) => {
+                  const active = pathname === link.href || pathname.startsWith(link.href);
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={
+                        active
+                          ? "flex h-10 items-center gap-3 rounded-[15px] bg-white/[0.08] px-3 text-sm font-medium text-white"
+                          : "flex h-10 items-center gap-3 rounded-[15px] px-3 text-sm font-medium text-white/48 transition hover:bg-white/[0.05] hover:text-white"
+                      }
+                    >
+                      <Iconify icon={link.icon} width="18" />
+                      <span className="min-w-0 flex-1 truncate">{link.label}</span>
+                      {index === 0 && <span className="rounded-full bg-[#262832] px-2 py-0.5 text-[11px] text-[#ffe36e]">4</span>}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              <div className="mt-auto space-y-3 pt-6">
+                <SidebarUtilities />
                 <Link
-                  key={link.href}
-                  href={link.href}
-                  title={link.label}
-                  aria-label={link.label}
+                  href="/prompts"
+                  aria-current={isActiveHref("/prompts") ? "page" : undefined}
+                  aria-label="新增 Prompt"
+                  title="新增 Prompt"
                   className={
-                    active
-                      ? "flex h-11 items-center gap-3 rounded-[16px] bg-[#7067ff] px-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(112,103,255,0.38)]"
-                      : "flex h-11 items-center gap-3 rounded-[16px] px-3 text-sm font-medium text-white/58 transition hover:bg-white/[0.05] hover:text-white"
+                    isActiveHref("/prompts")
+                      ? "flex h-[120px] flex-col items-center justify-center rounded-[24px] border border-dashed border-[#7067ff]/60 bg-[#1c1d26] text-center shadow-[0_16px_34px_rgba(112,103,255,0.16)] transition hover:border-[#8276ff]/70"
+                      : "flex h-[120px] flex-col items-center justify-center rounded-[24px] border border-dashed border-white/18 bg-[#15161b]/72 text-center transition hover:border-[#7067ff]/55 hover:bg-[#1c1d26]"
                   }
                 >
-                  <Iconify icon={link.icon} width="19" />
-                  <span className="min-w-0 flex-1 truncate">{link.label}</span>
-                  {active ? <Iconify icon="solar:alt-arrow-up-linear" width="15" /> : index === 1 ? <span className="h-2 w-2 rounded-full bg-[#ff765f]" /> : null}
+                  <span className={
+                    isActiveHref("/prompts")
+                      ? "mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#8276ff] text-white shadow-[0_12px_26px_rgba(112,103,255,0.50)]"
+                      : "mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#7067ff] text-white shadow-[0_12px_26px_rgba(112,103,255,0.42)]"
+                  }>
+                    <Iconify icon="solar:add-circle-linear" width="21" />
+                  </span>
+                  <span className="text-sm font-medium text-white">新建提示词</span>
+                  <span className="mt-1 text-xs text-white/36">也可进入导入入口</span>
                 </Link>
-              );
-            })}
-          </nav>
-
-          <div className="mt-6 space-y-1.5">
-            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/28">工作区</div>
-            {secondaryLinks.map((link, index) => {
-              const active = pathname === link.href || pathname.startsWith(link.href);
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={
-                    active
-                      ? "flex h-10 items-center gap-3 rounded-[15px] bg-white/[0.08] px-3 text-sm font-medium text-white"
-                      : "flex h-10 items-center gap-3 rounded-[15px] px-3 text-sm font-medium text-white/48 transition hover:bg-white/[0.05] hover:text-white"
-                  }
-                >
-                  <Iconify icon={link.icon} width="18" />
-                  <span className="min-w-0 flex-1 truncate">{link.label}</span>
-                  {index === 0 && <span className="rounded-full bg-[#262832] px-2 py-0.5 text-[11px] text-[#ffe36e]">4</span>}
-                </Link>
-              );
-            })}
-          </div>
-
-          <div className="mt-auto space-y-3">
-            <SidebarUtilities />
-            <Link
-              href="/prompts"
-              aria-current={isActiveHref("/prompts") ? "page" : undefined}
-              aria-label="新增 Prompt"
-              title="新增 Prompt"
-              className={
-                isActiveHref("/prompts")
-                  ? "flex h-[120px] flex-col items-center justify-center rounded-[24px] border border-dashed border-[#7067ff]/60 bg-[#1c1d26] text-center shadow-[0_16px_34px_rgba(112,103,255,0.16)] transition hover:border-[#8276ff]/70"
-                  : "flex h-[120px] flex-col items-center justify-center rounded-[24px] border border-dashed border-white/18 bg-[#15161b]/72 text-center transition hover:border-[#7067ff]/55 hover:bg-[#1c1d26]"
-              }
-            >
-              <span className={
-                isActiveHref("/prompts")
-                  ? "mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#8276ff] text-white shadow-[0_12px_26px_rgba(112,103,255,0.50)]"
-                  : "mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#7067ff] text-white shadow-[0_12px_26px_rgba(112,103,255,0.42)]"
-              }>
-                <Iconify icon="solar:add-circle-linear" width="21" />
-              </span>
-              <span className="text-sm font-medium text-white">新建提示词</span>
-              <span className="mt-1 text-xs text-white/36">也可进入导入入口</span>
-            </Link>
+              </div>
+            </div>
           </div>
         </div>
       </aside>
