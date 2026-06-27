@@ -35,7 +35,7 @@ export function initPromptGuardProject(options: InitPromptGuardProjectOptions = 
 
   const config: PromptGuardProjectConfig = {
     version: 1,
-    databaseUrl: "./data/promptguard.db",
+    databaseUrl: "mysql://env/PROMPTGUARD_DB",
     promptsDir: ".promptguard/prompts",
     datasetsDir: ".promptguard/datasets",
     defaultEnvironment: "production",

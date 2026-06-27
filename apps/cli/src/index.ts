@@ -20,6 +20,7 @@ import {
   exportAuditLogs,
   exportReport,
   exportPromptFile,
+  closeDb,
   configureProjectRemote,
   ensureProjectConfig,
   getProjectStatus,
@@ -162,8 +163,8 @@ async function requireCliPermission(permission: Permission) {
 program
   .command("init")
   .description("Initialize database")
-  .action(() => {
-    runMigrations();
+  .action(async () => {
+    await runMigrations();
     console.log(chalk.green("Database initialized."));
   });
 
@@ -301,7 +302,7 @@ program
   .option("--name <name>", "Prompt asset name", `demo-customer-service-${Date.now()}`)
   .option("--traffic <n>", "Gray traffic percent", (value) => parseInt(value, 10), 10)
   .action(async (opts) => {
-    runMigrations();
+    await runMigrations();
     console.log(chalk.bold("PromptGuard lifecycle demo"));
 
     const prompt = await createPrompt({
@@ -1017,4 +1018,11 @@ const argv = process.argv[2] === "--"
   ? [process.argv[0], process.argv[1], ...process.argv.slice(3)]
   : process.argv;
 
-program.parse(argv);
+program.parseAsync(argv)
+  .catch((error) => {
+    console.error(chalk.red(error instanceof Error ? error.message : String(error)));
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await closeDb();
+  });

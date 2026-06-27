@@ -7,6 +7,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export type LlmProvider = "mock" | "openai" | "anthropic" | "ollama";
 export type OpenAiWireApi = "responses" | "chat_completions";
 
+export type PromptGuardMysqlConfig = {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+};
+
 function findMonorepoRoot(startDir: string): string {
   let dir = startDir;
   while (true) {
@@ -20,26 +28,74 @@ function findMonorepoRoot(startDir: string): string {
   return path.resolve(__dirname, "../../..");
 }
 
+function loadRootEnv(root: string) {
+  const envPath = path.join(root, ".env");
+  if (!fs.existsSync(envPath)) return;
+  const lines = fs.readFileSync(envPath, "utf-8").split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const index = trimmed.indexOf("=");
+    if (index <= 0) continue;
+    const key = trimmed.slice(0, index).trim();
+    const rawValue = trimmed.slice(index + 1).trim();
+    if (!key || process.env[key] !== undefined) continue;
+    process.env[key] = rawValue.replace(/^['"]|['"]$/g, "");
+  }
+}
+
 export function getProjectRoot(): string {
   if (process.env.PROMPTGUARD_ROOT) {
+    loadRootEnv(process.env.PROMPTGUARD_ROOT);
     return process.env.PROMPTGUARD_ROOT;
   }
-  return findMonorepoRoot(process.cwd());
+  const root = findMonorepoRoot(process.cwd());
+  process.env.PROMPTGUARD_ROOT = root;
+  loadRootEnv(root);
+  return root;
 }
 
 export function getDatabasePath(): string {
-  const root = getProjectRoot();
-  const envPath = process.env.DATABASE_URL?.trim();
-  const dbPath = envPath
-    ? path.isAbsolute(envPath)
-      ? envPath
-      : path.resolve(root, envPath)
-    : path.resolve(root, "data/promptguard.db");
+  return getDatabaseLabel();
+}
 
-  if (!dbPath) {
-    throw new Error("Failed to resolve database path");
+export function getMysqlConfig(): PromptGuardMysqlConfig {
+  getProjectRoot();
+  const host =
+    process.env.PROMPTGUARD_DB_HOST ??
+    process.env.PROMPTGUARD_REMOTE_DB_HOST ??
+    process.env.DB_HOST;
+  const port = Number(
+    process.env.PROMPTGUARD_DB_PORT ??
+    process.env.PROMPTGUARD_REMOTE_DB_PORT ??
+    process.env.DB_PORT ??
+    3306,
+  );
+  const user =
+    process.env.PROMPTGUARD_DB_USER ??
+    process.env.PROMPTGUARD_REMOTE_DB_USER ??
+    process.env.DB_USER;
+  const password =
+    process.env.PROMPTGUARD_DB_PASSWORD ??
+    process.env.PROMPTGUARD_REMOTE_DB_PASSWORD ??
+    process.env.DB_PASSWORD ??
+    "";
+  const database =
+    process.env.PROMPTGUARD_DB_NAME ??
+    process.env.PROMPTGUARD_REMOTE_DB_NAME ??
+    process.env.DB_NAME ??
+    "PROMPTGUARD";
+
+  if (!host || !user) {
+    throw new Error("Missing MySQL config. Set PROMPTGUARD_DB_HOST, PROMPTGUARD_DB_USER, PROMPTGUARD_DB_PASSWORD, and PROMPTGUARD_DB_NAME in .env.");
   }
-  return dbPath;
+
+  return { host, port, user, password, database };
+}
+
+export function getDatabaseLabel(): string {
+  const config = getMysqlConfig();
+  return `mysql://${config.user}@${config.host}:${config.port}/${config.database}`;
 }
 
 export function getReportsDir(): string {

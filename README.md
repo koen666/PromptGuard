@@ -92,7 +92,7 @@ print(response.output)
 pip install -e packages/python
 ```
 
-Python SDK 默认读取同一份 SQLite 数据库。可通过 `DATABASE_URL` 或 `PROMPTGUARD_ROOT` 指向业务项目。
+Python SDK 仍保留轻量本地示例实现；主 TypeScript SDK / CLI / Web 当前统一使用服务器 MySQL 中的 PromptGuard 资产库。
 
 ---
 
@@ -176,7 +176,7 @@ const result = await prompt.run(message, {
 | **pnpm** | 9+（仓库锁定 `pnpm@9.15.4`） |
 | **操作系统** | Windows / macOS / Linux 均可 |
 
-> **Windows 注意**：`better-sqlite3` 为原生模块，首次 `pnpm install` 需要能编译 C++（通常 Node 安装包已带构建工具；若失败，可安装 [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) 并勾选「使用 C++ 的桌面开发」）。
+> 当前主库使用 MySQL，不再依赖 `better-sqlite3` 原生模块。
 
 检查版本：
 
@@ -210,7 +210,7 @@ pnpm install
 copy .env.example .env
 ```
 
-默认无需改即可运行（Mock LLM + 本地 SQLite）。需要真实模型时再改 `.env`。
+填写 `.env` 中的 `PROMPTGUARD_DB_*` 后即可连接服务器 MySQL。需要真实模型时再配置 `LLM_PROVIDER` 与对应 API Key。
 
 ### 3. 数据库迁移
 
@@ -218,7 +218,7 @@ copy .env.example .env
 pnpm db:migrate
 ```
 
-会在 `data/` 下创建 `promptguard.db`（该目录已在 `.gitignore` 中，不会随 zip 分发，需本地执行迁移生成）。
+会在 `PROMPTGUARD_DB_NAME` 指定的 MySQL 数据库里创建账号、Prompt、评测、安全扫描、审核、发布、审计和项目同步相关表。
 
 ### 4. （可选）灌入演示数据
 
@@ -267,11 +267,10 @@ PowerShell 在项目根目录执行：
 | `pnpm dev` | 编译 core + 启动 Next.js 开发服（:3000） |
 | `pnpm build` | 全仓 TypeScript / Next 生产构建 |
 | `pnpm typecheck` | 各包类型检查 |
-| `pnpm db:generate` | 修改 schema 后生成 Drizzle 迁移（开发用） |
-| `pnpm db:migrate` | 应用迁移到 SQLite |
-| `pnpm seed` | 重置并写入演示数据 |
+| `pnpm db:generate` | 修改 Drizzle schema 后生成参考迁移（开发用） |
+| `pnpm db:migrate` | 应用迁移到服务器 MySQL |
+| `pnpm seed` | 写入演示数据 |
 | `pnpm pmg -- <子命令>` | 开发态调用 PromptGuard CLI |
-| `pnpm rebuild:native` | 用当前 Node 重新编译 `better-sqlite3` 原生模块 |
 | `pnpm install:pmg` | 将 `pmg` 安装/链接为本机命令 |
 
 CLI 包构建 / 安装后会暴露两个命令：`pmg`（推荐短命令）和 `promptguard`（完整命名）。在 monorepo 开发态可使用 `pnpm pmg -- ...`；执行下面命令后，就可以像 `git`、`brew` 一样直接使用 `pmg ...`：
@@ -283,14 +282,7 @@ pmg --help
 pmg prompt list
 ```
 
-`pnpm install:pmg` 会先重新编译原生模块，再构建 CLI，最后用 `npm link` 暴露本机命令，适合本机演示和开发。真正发布到公共包管理器时，可以进一步做成 `npm install -g @promptguard/cli` 或 Homebrew tap。
-
-如果 `pmg prompt list` 报 `better-sqlite3 was compiled against a different Node.js version`，说明你切换过 Node 版本，执行：
-
-```powershell
-pnpm rebuild:native
-pnpm install:pmg
-```
+`pnpm install:pmg` 会构建 CLI 并用 `npm link` 暴露本机命令，适合本机演示和开发。真正发布到公共包管理器时，可以进一步做成 `npm install -g @promptguard/cli` 或 Homebrew tap。
 
 macOS / zsh 下如果命令缓存没刷新，再执行一次：
 
@@ -334,13 +326,19 @@ pnpm --filter @promptguard/web start
 `.env` 字段（见 `.env.example`）：
 
 ```env
-DATABASE_URL=./data/promptguard.db
-LLM_PROVIDER=mock          # mock | openai | anthropic | ollama
+PROMPTGUARD_DB_HOST=
+PROMPTGUARD_DB_PORT=3306
+PROMPTGUARD_DB_USER=
+PROMPTGUARD_DB_PASSWORD=
+PROMPTGUARD_DB_NAME=PROMPTGUARD
+
 PROMPTGUARD_REMOTE_DB_HOST=
 PROMPTGUARD_REMOTE_DB_PORT=3306
 PROMPTGUARD_REMOTE_DB_USER=
 PROMPTGUARD_REMOTE_DB_PASSWORD=
-PROMPTGUARD_REMOTE_DB_NAME=
+PROMPTGUARD_REMOTE_DB_NAME=PROMPTGUARD
+
+LLM_PROVIDER=mock          # mock | openai | anthropic | ollama
 OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
 OPENAI_BASE_URL=https://api.openai.com
@@ -358,17 +356,18 @@ ANTHROPIC_MODEL=claude-3-5-haiku-20241022
 - `OPENAI_BASE_URL` 支持 OpenAI-compatible 网关；未以 `/v1` 结尾时系统会自动拼接 `/v1`。
 - `OPENAI_WIRE_API=responses` 时会请求 `/v1/responses`，并在 `OPENAI_DISABLE_RESPONSE_STORAGE=true` 时发送 `store=false`。
 - `OPENAI_FALLBACK_TO_MOCK=false` 表示真实模型调用失败时直接报错，避免安全审核误用 mock 结果。
-- `PROMPTGUARD_REMOTE_DB_*` 用于 `pmg project remote/status/push/pull`。真实密码只放本地 `.env`，不要提交到 Git。
+- `PROMPTGUARD_DB_*` 是 Web / CLI / SDK / 账号体系 / 资产库的主数据库配置。
+- `PROMPTGUARD_REMOTE_DB_*` 用于 `pmg project remote/status/push/pull`。通常与 `PROMPTGUARD_DB_*` 指向同一个服务器库。真实密码只放本地 `.env`，不要提交到 Git。
 
 ### Project remote 同步
 
-PromptGuard 的项目组织方式类似 Git：业务项目里有 `.promptguard/promptguard.json` 作为本地配置，`pmg project scan` 会扫描代码里的 `GuardedPrompt.load()` / `GuardedPrompt.create()` 引用，`pmg project status` 显示本地资产和远端状态，`pmg project push/pull` 把 Prompt 资产同步到 MySQL remote。
+PromptGuard 的项目组织方式类似 Git：业务项目里有 `.promptguard/promptguard.json` 作为本地配置，`pmg project scan` 会扫描代码里的 `GuardedPrompt.load()` / `GuardedPrompt.create()` 引用，`pmg project status` 显示本地资产和远端状态，`pmg project push/pull` 把 Prompt 资产同步到 MySQL remote。当前 Web、CLI、账号、资产库也使用同一个服务器 MySQL。
 
 首次配置：
 
 ```powershell
 copy .env.example .env
-# 在 .env 里填写 PROMPTGUARD_REMOTE_DB_HOST / USER / PASSWORD / NAME
+# 在 .env 里填写 PROMPTGUARD_DB_* 与 PROMPTGUARD_REMOTE_DB_*
 
 cd pre/support-chat-system
 pmg project init --name support-chat-system
@@ -468,7 +467,7 @@ PromptGuard/
 │   │       └── template/    # 桌面式应用外壳与通用组件
 │   └── cli/                 # Commander.js CLI
 ├── packages/
-│   ├── core/                # SDK 运行时、业务逻辑、SQLite、Drizzle、LLM 适配器
+│   ├── core/                # SDK 运行时、业务逻辑、MySQL、Drizzle、LLM 适配器
 │   │   ├── src/
 │   │   └── drizzle/         # SQL 迁移（0000_init.sql）
 │   └── python/              # Python SDK：from promptguard import GuardedPrompt
@@ -477,7 +476,6 @@ PromptGuard/
 ├── scripts/
 │   ├── setup.ps1            # Windows 一键安装
 │   └── package.ps1          # 打 zip 交付包
-├── data/                    # SQLite（本地生成，不提交 git）
 ├── reports/                 # 导出报告（本地生成）
 ├── generated-page.html      # 历史 UI 参考源文件
 ├── .env.example
@@ -489,7 +487,7 @@ PromptGuard/
 
 ```
 apps/web (UI + API) ──┐
-apps/cli (命令行)  ──┼──► @promptguard/core ──► SQLite (data/promptguard.db)
+apps/cli (命令行)  ──┼──► @promptguard/core ──► MySQL (PROMPTGUARD)
 packages/python SDK ─┘                         └──► LLM 适配器 (mock / openai / anthropic)
 ```
 
@@ -499,7 +497,7 @@ packages/python SDK ─┘                         └──► LLM 适配器 (m
 
 - **Monorepo**：pnpm workspace · TypeScript
 - **Web**：Next.js 15 · React 19 · Tailwind CSS 4 · Recharts · Iconify
-- **数据**：SQLite · Drizzle ORM · better-sqlite3
+- **数据**：MySQL · Drizzle ORM · mysql2
 - **CLI**：Commander.js
 
 ---
@@ -531,12 +529,6 @@ taskkill /PID <PID> /F
 $env:PORT=3001; pnpm --filter @promptguard/web dev
 ```
 
-### `better-sqlite3` 安装失败
-
-- 确认 Node 为 20+ 64 位
-- Windows 安装 Visual Studio Build Tools（C++ 工作负载）
-- 删除 `node_modules` 后重新 `pnpm install`
-
 ### 数据库为空 / 表不存在
 
 ```powershell
@@ -548,7 +540,7 @@ pnpm seed
 
 ```powershell
 pnpm db:generate   # 生成新迁移文件
-pnpm db:migrate    # 应用到本地库
+pnpm db:migrate    # 应用到服务器 MySQL
 ```
 
 ## 打包交付说明
@@ -570,10 +562,10 @@ pnpm db:migrate    # 应用到本地库
 会在**上一级目录**生成 `PromptGuard-handover.zip`，已排除：
 
 - `node_modules`、`.next`、`dist`
-- `data/`、`reports/`、`.env`
+- `reports/`、`.env`
 - 各类日志与系统缓存
 
-**zip 内不含数据库与依赖**，接收方必须本地执行 `pnpm install` 与 `pnpm db:migrate`。
+**zip 内不含依赖与私密配置**，接收方必须本地执行 `pnpm install`，配置 `.env`，再执行 `pnpm db:migrate`。
 
 ### 若通过 Git 交接
 
