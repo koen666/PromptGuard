@@ -14,6 +14,7 @@
 
 - [功能概览](#功能概览)
 - [SDK 用法](#sdk-用法)
+- [pre SDK 对照演示](#pre-sdk-对照演示)
 - [环境要求](#环境要求)
 - [从零复现（推荐流程）](#从零复现推荐流程)
 - [一键安装脚本（Windows）](#一键安装脚本windows)
@@ -92,6 +93,78 @@ pip install -e packages/python
 ```
 
 Python SDK 默认读取同一份 SQLite 数据库。可通过 `DATABASE_URL` 或 `PROMPTGUARD_ROOT` 指向业务项目。
+
+---
+
+## pre SDK 对照演示
+
+`pre/support-chat-system` 是一个独立的小业务项目，用来演示“裸调用模型”和“接入 PromptGuard SDK”两种写法的差异。
+
+### 演示目标
+
+- **直接调用模型**：业务代码把 PM 写成普通 `systemPrompt` / `BUSINESS_PROMPT` 变量，再拼进 `messages`。提示词逆向样例会展示 PM 被套出的结果。
+- **使用 PromptGuard SDK**：业务代码通过 `GuardedPrompt.load()` 从 PromptGuard 资产库加载 PM，并由 SDK 执行输入拦截、protected runtime 包装和输出泄露检测。
+
+### 运行方式
+
+先在仓库根目录构建 core：
+
+```powershell
+pnpm --filter @promptguard/core build
+```
+
+启动 pre demo：
+
+```powershell
+cd pre/support-chat-system
+node server.mjs
+```
+
+浏览器打开：
+
+```text
+http://localhost:4317
+```
+
+### 代码落点
+
+| 文件 | 作用 |
+|------|------|
+| `pre/support-chat-system/server.mjs` | 后端 demo 服务，包含 direct / sdk 两条调用链 |
+| `pre/support-chat-system/public/index.html` | 两种模式切换、样例按钮和右侧状态面板 |
+| `pre/support-chat-system/public/app.js` | 发送消息、展示 blocked / PM Sent / findings / 打字机效果 |
+| `pre/support-chat-system/public/styles.css` | 桌面式深色 UI 和毛玻璃侧栏样式 |
+
+direct 模式的核心代码：
+
+```js
+const systemPrompt = BUSINESS_PROMPT;
+const messages = [
+  { role: "system", content: systemPrompt },
+  { role: "user", content: message },
+];
+```
+
+SDK 模式的核心代码：
+
+```js
+const prompt = await GuardedPrompt.load("pre-售后对话助手", {
+  environment: "production",
+  routeKey: "pre-demo-user",
+});
+
+const result = await prompt.run(message, {
+  blockUnsafeInput: true,
+  runner: realModelRunner,
+});
+```
+
+同一条逆向样例在两个模式下的对照：
+
+| 模式 | 结果 |
+|------|------|
+| 直接调用模型 | `PM Sent = yes`，PM 会以普通变量形式被展示出来 |
+| PromptGuard SDK | `Blocked = yes`，`PM Sent = no`，模型调用前被 SDK 拦截 |
 
 ---
 
@@ -322,6 +395,8 @@ PromptGuard/
 │   │   ├── src/
 │   │   └── drizzle/         # SQL 迁移（0000_init.sql）
 │   └── python/              # Python SDK：from promptguard import GuardedPrompt
+├── pre/
+│   └── support-chat-system/ # SDK 接入对照 demo：direct 模式 vs PromptGuard SDK 模式
 ├── scripts/
 │   ├── setup.ps1            # Windows 一键安装
 │   └── package.ps1          # 打 zip 交付包
