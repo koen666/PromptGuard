@@ -11,6 +11,7 @@ import { getStatusLabel } from "./sections";
 const SEARCH_ALIASES: Record<string, string[]> = {
   "/": ["overview", "home", "dashboard", "workspace", "总览", "首页"],
   "/prompts": ["prompt", "prompts", "asset", "assets", "library", "资产", "资产库", "提示词"],
+  "/project": ["project", "remote", "push", "pull", "sync", "项目", "远程", "同步"],
   "/datasets": ["dataset", "datasets", "data", "case", "cases", "数据", "数据集", "用例"],
   "/evaluations": ["evaluation", "evaluations", "eval", "score", "test", "评测", "测试"],
   "/security": ["security", "scan", "shield", "guard", "安全", "扫描", "防护"],
@@ -24,6 +25,7 @@ const SEARCH_ALIASES: Record<string, string[]> = {
 const SEARCH_DESCRIPTIONS: Record<string, string> = {
   "/": "工作台概览",
   "/prompts": "提示词资产库",
+  "/project": "项目 remote 与同步状态",
   "/datasets": "数据集与测试用例",
   "/evaluations": "评测任务",
   "/security": "安全扫描",
@@ -56,6 +58,7 @@ type ExportOption = {
 const EXPORT_OPTIONS: ExportOption[] = [
   { label: "总览摘要", description: "当前工作台指标", endpoint: "/api/dashboard", filePrefix: "dashboard" },
   { label: "提示词资产", description: "提示词列表与版本摘要", endpoint: "/api/prompts", filePrefix: "prompts" },
+  { label: "项目状态", description: "remote 与 prompt 同步状态", endpoint: "/api/project", filePrefix: "project" },
   { label: "数据集", description: "数据集目录", endpoint: "/api/datasets", filePrefix: "datasets" },
   { label: "评测任务", description: "评测历史记录", endpoint: "/api/evaluations", filePrefix: "evaluations" },
   { label: "安全扫描", description: "安全扫描记录", endpoint: "/api/security", filePrefix: "security" },
@@ -68,14 +71,15 @@ const EXPORT_OPTIONS: ExportOption[] = [
 
 function currentExportOption(pathname: string) {
   if (pathname.startsWith("/prompts")) return EXPORT_OPTIONS[1];
-  if (pathname.startsWith("/datasets")) return EXPORT_OPTIONS[2];
-  if (pathname.startsWith("/evaluations")) return EXPORT_OPTIONS[3];
-  if (pathname.startsWith("/security")) return EXPORT_OPTIONS[4];
-  if (pathname.startsWith("/reviews")) return EXPORT_OPTIONS[5];
-  if (pathname.startsWith("/releases")) return EXPORT_OPTIONS[6];
-  if (pathname.startsWith("/reports")) return EXPORT_OPTIONS[7];
-  if (pathname.startsWith("/audit")) return EXPORT_OPTIONS[8];
-  if (pathname.startsWith("/settings")) return EXPORT_OPTIONS[9];
+  if (pathname.startsWith("/project")) return EXPORT_OPTIONS[2];
+  if (pathname.startsWith("/datasets")) return EXPORT_OPTIONS[3];
+  if (pathname.startsWith("/evaluations")) return EXPORT_OPTIONS[4];
+  if (pathname.startsWith("/security")) return EXPORT_OPTIONS[5];
+  if (pathname.startsWith("/reviews")) return EXPORT_OPTIONS[6];
+  if (pathname.startsWith("/releases")) return EXPORT_OPTIONS[7];
+  if (pathname.startsWith("/reports")) return EXPORT_OPTIONS[8];
+  if (pathname.startsWith("/audit")) return EXPORT_OPTIONS[9];
+  if (pathname.startsWith("/settings")) return EXPORT_OPTIONS[10];
   return EXPORT_OPTIONS[0];
 }
 

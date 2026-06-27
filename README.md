@@ -271,6 +271,7 @@ PowerShell 在项目根目录执行：
 | `pnpm db:migrate` | 应用迁移到 SQLite |
 | `pnpm seed` | 重置并写入演示数据 |
 | `pnpm pmg -- <子命令>` | 开发态调用 PromptGuard CLI |
+| `pnpm rebuild:native` | 用当前 Node 重新编译 `better-sqlite3` 原生模块 |
 | `pnpm install:pmg` | 将 `pmg` 安装/链接为本机命令 |
 
 CLI 包构建 / 安装后会暴露两个命令：`pmg`（推荐短命令）和 `promptguard`（完整命名）。在 monorepo 开发态可使用 `pnpm pmg -- ...`；执行下面命令后，就可以像 `git`、`brew` 一样直接使用 `pmg ...`：
@@ -282,7 +283,20 @@ pmg --help
 pmg prompt list
 ```
 
-`pnpm install:pmg` 底层使用 `npm link`，适合本机演示和开发。真正发布到公共包管理器时，可以进一步做成 `npm install -g @promptguard/cli` 或 Homebrew tap。
+`pnpm install:pmg` 会先重新编译原生模块，再构建 CLI，最后用 `npm link` 暴露本机命令，适合本机演示和开发。真正发布到公共包管理器时，可以进一步做成 `npm install -g @promptguard/cli` 或 Homebrew tap。
+
+如果 `pmg prompt list` 报 `better-sqlite3 was compiled against a different Node.js version`，说明你切换过 Node 版本，执行：
+
+```powershell
+pnpm rebuild:native
+pnpm install:pmg
+```
+
+macOS / zsh 下如果命令缓存没刷新，再执行一次：
+
+```powershell
+hash -r
+```
 
 **Web 路由一览**
 
@@ -292,6 +306,7 @@ pmg prompt list
 | `/prompts` | Prompt 列表 |
 | `/prompts/[id]` | Prompt 详情 / 编辑 |
 | `/prompts/[id]/diff` | 版本 diff |
+| `/project` | 项目 Prompt 扫描与 remote 同步状态 |
 | `/datasets` | 数据集 |
 | `/evaluations` | 评测任务 |
 | `/reports/[id]` | 评测报告 |
@@ -321,6 +336,11 @@ pnpm --filter @promptguard/web start
 ```env
 DATABASE_URL=./data/promptguard.db
 LLM_PROVIDER=mock          # mock | openai | anthropic | ollama
+PROMPTGUARD_REMOTE_DB_HOST=
+PROMPTGUARD_REMOTE_DB_PORT=3306
+PROMPTGUARD_REMOTE_DB_USER=
+PROMPTGUARD_REMOTE_DB_PASSWORD=
+PROMPTGUARD_REMOTE_DB_NAME=
 OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
 OPENAI_BASE_URL=https://api.openai.com
@@ -338,6 +358,38 @@ ANTHROPIC_MODEL=claude-3-5-haiku-20241022
 - `OPENAI_BASE_URL` 支持 OpenAI-compatible 网关；未以 `/v1` 结尾时系统会自动拼接 `/v1`。
 - `OPENAI_WIRE_API=responses` 时会请求 `/v1/responses`，并在 `OPENAI_DISABLE_RESPONSE_STORAGE=true` 时发送 `store=false`。
 - `OPENAI_FALLBACK_TO_MOCK=false` 表示真实模型调用失败时直接报错，避免安全审核误用 mock 结果。
+- `PROMPTGUARD_REMOTE_DB_*` 用于 `pmg project remote/status/push/pull`。真实密码只放本地 `.env`，不要提交到 Git。
+
+### Project remote 同步
+
+PromptGuard 的项目组织方式类似 Git：业务项目里有 `.promptguard/promptguard.json` 作为本地配置，`pmg project scan` 会扫描代码里的 `GuardedPrompt.load()` / `GuardedPrompt.create()` 引用，`pmg project status` 显示本地资产和远端状态，`pmg project push/pull` 把 Prompt 资产同步到 MySQL remote。
+
+首次配置：
+
+```powershell
+copy .env.example .env
+# 在 .env 里填写 PROMPTGUARD_REMOTE_DB_HOST / USER / PASSWORD / NAME
+
+cd pre/support-chat-system
+pmg project init --name support-chat-system
+pmg project scan
+pmg project remote set --from-env
+pmg project status
+pmg project push
+```
+
+`pmg project push` 会自动在远端 MySQL 创建以下表：
+
+- `promptguard_projects`
+- `promptguard_prompt_assets`
+
+之后日常流程就是：
+
+```powershell
+pmg project status   # 看有哪些 PM、哪些已同步、哪些有变更
+pmg project push     # 推送本地 Prompt 资产到 remote
+pmg project pull     # 从 remote 拉取 Prompt 资产到本地库
+```
 
 ---
 
@@ -371,8 +423,21 @@ pmg report generate --run <runId> --format html
 ## CLI 常用命令
 
 ```powershell
-pmg init                          # 初始化数据库（通常用 db:migrate 即可）
+pmg --help                         # 查看顶层命令
+pmg init                           # 初始化数据库（通常用 db:migrate 即可）
+
+pmg auth register -u <username>    # 注册本地用户
+pmg auth login -u <username>       # 登录并保存 CLI session
+pmg auth whoami                    # 查看当前登录用户
+pmg auth logout                    # 退出登录
+
 pmg project init --sample          # 初始化 .promptguard 项目目录
+pmg project scan                   # 扫描代码中的 GuardedPrompt.load/create
+pmg project status                 # 查看项目 PM、本地版本、remote 同步状态
+pmg project remote set --from-env  # 从 PROMPTGUARD_REMOTE_DB_* 配置 MySQL remote
+pmg project push                   # 推送本地 Prompt 资产到 remote
+pmg project pull                   # 从 remote 拉取 Prompt 资产到本地库
+
 pmg prompt list
 pmg prompt create --name "..." --content "..."
 pmg prompt create --name "..." --file .promptguard/prompts/foo.md

@@ -27,3 +27,5 @@ export function loadEnv() {
 
   process.env.DATABASE_URL = dbPath;
 }
+
+loadEnv();
