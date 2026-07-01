@@ -13,4 +13,7 @@ __pycache__/
 data/
 /reports/
 report_evidence/
+/test-artifacts/
+**/coverage/
+**/test-results/
 .DS_Store
